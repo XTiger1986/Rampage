@@ -1,55 +1,55 @@
 # Rampage
 
-![.NET](https://img.shields.io/badge/.NET-8.0%2B-512BD4) ![C#](https://img.shields.io/badge/C%23-12-239120) ![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%7C%20Linux%20%7C%20macOS-6C7A89) ![License](https://img.shields.io/badge/License-MIT-yellow)
+![.NET](https://img.shields.io/badge/.NET-8.0%2B-512BD4) ![C#](https://img.shields.io/badge/C%23-12-239120) ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-6C7A89) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**[English](Readme_en.md) | 简体中文**
+**English | [简体中文](Readme.md)**
 
-Rampage 是一套个人开发、开源的全栈式 .NET 通用开发框架（.NET 8+）。它以「特性驱动、约定优于配置」为设计核心，通过启动器（`RampageBooter`）+ Emit 动态编译，在应用启动时自动完成服务扫描、依赖装配与数据库客户端初始化，让你以最少的样板代码搭建从数据层到 Web 层的完整应用。
+Rampage is a personally developed, open-source, full-stack general-purpose .NET framework (.NET 8+). Built around the principles of "attribute-driven, convention over configuration", its bootstrapper (`RampageBooter`) combined with Emit dynamic compilation automatically performs service scanning, dependency wiring and database client initialization at startup, letting you build a complete application from the data layer to the web layer with minimal boilerplate.
 
-框架覆盖企业级开发的完整链路：**自动依赖注入、轻量 ORM（多数据库）、声明式 HTTP 客户端、JWT 认证、限流、幂等、多时区、Redis 分布式组件、Cron 定时任务、弹性（重试/熔断/超时）、RBAC 管理后台、验证码**，并配套**代码生成器**与**数据库部署器**两款开发工具。
+The framework covers the full chain of enterprise development: **automatic dependency injection, a lightweight ORM (multi-database), declarative HTTP clients, JWT authentication, rate limiting, idempotency, multi-timezone support, Redis distributed components, cron scheduling, resilience (retry/circuit breaker/timeout), an RBAC admin module, and CAPTCHA generation**, plus two development tools: a **code generator** and a **database deployer**.
 
 ---
 
-## 核心特性
+## Key Features
 
-- **自动依赖注入** — 在成员上标注 `[Auto]` / `[Singleton]` 即完成注册与注入，无需手写 `AddScoped`；支持 `Lazy<T>` 延迟解析打破循环依赖，启动期自动环检测
-- **轻量 ORM 数据层** — `[TableMapping]` / `[FieldMapping]` 实体映射，Lambda 表达式、`LambdaWrapper`、`DataFilter`（HTTP 查询参数直转 SQL 条件）三种查询方式，覆盖增删改查、分页、批量、事务，同步/异步双套 API
-- **多数据库支持** — MySQL、SQL Server、PostgreSQL、SQLite、Oracle 五大数据库，配置文件一键切换，多库共存
-- **声明式 HTTP 客户端** — 定义接口 + 标注 `[SuperClient]` / `[SuperGet]` / `[SuperPost]` 等特性，框架动态生成异步代理，支持拦截器
-- **Web 开发全家桶** — Web 启动器、JWT 认证（Access/Refresh 双令牌）、模型验证、接口限流、幂等回放、CorrelationId 链路追踪、JSON 自动时区转换、多主题
-- **Redis 分布式组件** — 分布式锁（看门狗自动续期、Token 安全释放）、分布式幂等存储、分布式限流、调度任务互斥锁
-- **Cron 定时任务** — 内置分钟级 Cron 调度器（自研 5 字段表达式解析），随宿主自动启停，可插拔分布式锁
-- **弹性能力** — 重试（指数退避）+ 熔断 + 超时三合一，Provider 接口化设计，可无缝替换为 Polly 等第三方实现
-- **RBAC 管理后台模块** — 管理员/角色组/菜单/权限/操作日志开箱即用的类库，注解式权限声明
-- **开发工具链** — 代码生成器（数据库表 → Model/Dao/Service 三层代码）、数据库部署器（版本化 SQL 脚本增量部署）
+- **Automatic Dependency Injection** — mark members with `[Auto]` / `[Singleton]` and registration/injection just happens; no manual `AddScoped`. Supports `Lazy<T>` for deferred resolution to break dependency cycles, with cycle detection at startup
+- **Lightweight ORM Data Layer** — `[TableMapping]` / `[FieldMapping]` entity mapping; three query styles (Lambda expressions, `LambdaWrapper`, `DataFilter` which turns HTTP query parameters straight into SQL conditions); full CRUD, paging, batching and transactions in both sync and async APIs
+- **Multi-Database Support** — MySQL, SQL Server, PostgreSQL, SQLite and Oracle; switch via configuration, multiple databases coexist
+- **Declarative HTTP Client** — define an interface, annotate with `[SuperClient]` / `[SuperGet]` / `[SuperPost]` etc., and the framework emits an async proxy; interceptors supported
+- **Full Web Toolkit** — web bootstrapper, JWT authentication (access/refresh dual tokens), model validation, rate limiting, idempotent replay, CorrelationId tracing, automatic timezone conversion in JSON, multi-theme
+- **Redis Distributed Components** — distributed lock (watchdog auto-renewal, token-safe release), distributed idempotency store, distributed rate limiter, scheduler mutual-exclusion lock
+- **Cron Scheduling** — built-in minute-level cron scheduler (self-implemented 5-field expression parser), starts/stops with the host, pluggable distributed lock
+- **Resilience** — retry (exponential backoff) + circuit breaker + timeout in one; provider-based design, swappable for Polly or any third-party implementation
+- **RBAC Admin Module** — administrators, groups, menus, permissions and audit logs as ready-to-use libraries, with annotation-driven permission declaration
+- **Developer Toolchain** — code generator (database tables → Model/Dao/Service three-tier code) and database deployer (versioned incremental SQL scripts)
 
-## 框架组成
+## Solution Layout
 
-| 分组 | 项目 | 说明 |
+| Group | Project | Description |
 | --- | --- | --- |
-| 核心 | **Rampage** | 依赖注入、数据访问（ORM）、动态编译、HTTP 客户端、缓存、配置、验证、日志、本地化、限流、幂等、工具集 |
-| Web | **Rampage.Web** | Web 启动器、JWT、过滤器与中间件、时区、主题、分页组件 |
-| 绘图 | **Rampage.Drawing** | 基于 SkiaSharp 的跨平台验证码（10 种样式）、图片工具 |
-| 数据库 | **Rampage.Dapper** | 基于 Dapper 的数据访问器 |
-| 数据库 | **Rampage.DatabaseLibrary.MySql / SqlServer / PostgreSQL / Sqlite / Oracle** | 五大数据库 Provider |
-| 分布式 | **Rampage.RedisLibrary** | Redis 助手、分布式锁、幂等存储、分布式限流、调度互斥 |
-| 弹性 | **Rampage.Resilience** | 重试 + 熔断 + 超时 |
-| 调度 | **Rampage.Scheduling** | Cron 定时任务调度器 |
-| 管理 | **Rampage.Management.Core / Web** | RBAC 管理后台类库 |
-| 工具 | **Rampage.CodeGenerator** | 三层代码生成器 |
-| 工具 | **Rampage.DatabaseDeployer** | 数据库版本化部署器 |
+| Core | **Rampage** | DI, data access (ORM), dynamic compilation, HTTP client, caching, configuration, validation, logging, localization, rate limiting, idempotency, utilities |
+| Web | **Rampage.Web** | Web bootstrapper, JWT, filters & middleware, timezone, themes, paging components |
+| Drawing | **Rampage.Drawing** | Cross-platform CAPTCHA via SkiaSharp (10 styles) and image tools |
+| Database | **Rampage.Dapper** | Dapper-based data accessor |
+| Database | **Rampage.DatabaseLibrary.MySql / SqlServer / PostgreSQL / Sqlite / Oracle** | Five database providers |
+| Distributed | **Rampage.RedisLibrary** | Redis helper, distributed lock, idempotency store, rate limiter, scheduler lock |
+| Resilience | **Rampage.Resilience** | Retry + circuit breaker + timeout |
+| Scheduling | **Rampage.Scheduling** | Cron job scheduler |
+| Management | **Rampage.Management.Core / Web** | RBAC admin module libraries |
+| Tools | **Rampage.CodeGenerator** | Three-tier code generator |
+| Tools | **Rampage.DatabaseDeployer** | Versioned database deployer |
 
-## 快速开始
+## Getting Started
 
-### 环境要求
+### Prerequisites
 
-- .NET 8.0 SDK 及以上
-- 需要数据库时：MySQL / SQL Server / PostgreSQL / SQLite / Oracle 任一
-- 需要分布式能力时：Redis
+- .NET 8.0 SDK or later
+- For database access: any of MySQL / SQL Server / PostgreSQL / SQLite / Oracle
+- For distributed capabilities: Redis
 
-### 引用方式
+### Referencing
 
-克隆本仓库后，在解决方案中直接引用对应项目；或将各项目编译为 NuGet 包后引用。
+Clone this repository and reference the projects directly, or pack them as NuGet packages.
 
 ```bash
 git clone https://github.com/XTiger1986/Rampage.git
@@ -57,9 +57,9 @@ cd Rampage
 dotnet build
 ```
 
-### 启动一个 Web 应用
+### Bootstrapping a Web Application
 
-定义应用类并继承 `RampageWebApplication`，一行代码启动：
+Define an application class inheriting `RampageWebApplication` and start with a single line:
 
 ```csharp
 // Program.cs
@@ -72,20 +72,20 @@ public class MyApplication : RampageWebApplication
 {
     public MyApplication() : base()
     {
-        // 应用初始化完成事件，可在此追加自定义配置
+        // Fired when the application has been fully initialized
         ApplicationInitialized += (app, provider) =>
         {
-            Console.WriteLine("Rampage 应用已启动");
+            Console.WriteLine("Rampage application started");
         };
     }
 }
 ```
 
-启动器将自动完成：程序集多线程扫描、服务注册、log4net 日志初始化、数据库客户端初始化、依赖装配环检测。
+The bootstrapper automatically performs: multi-threaded assembly scanning, service registration, log4net initialization, database client initialization and dependency cycle detection.
 
-### 配置文件
+### Configuration
 
-配置位于 `config/app.json`，按环境自动加载 `app.Development.json` / `app.Production.json`：
+Configuration lives in `config/app.json`, with `app.Development.json` / `app.Production.json` loaded per environment:
 
 ```json
 {
@@ -110,7 +110,7 @@ public class MyApplication : RampageWebApplication
   },
   "JwtAuthenticationConfig": {
     "Main": {
-      "SecretKey": "<至少 64 字符的随机密钥>",
+      "SecretKey": "<random key of at least 64 characters>",
       "Issuer": "Demo.Api",
       "Audience": "Demo.Client",
       "ExpiredSeconds": 300,
@@ -122,33 +122,33 @@ public class MyApplication : RampageWebApplication
 
 ---
 
-## 核心能力详解
+## Capability Tour
 
-### 1. 自动依赖注入
+### 1. Automatic Dependency Injection
 
-在类成员上标注特性即可声明依赖，框架启动时扫描全部程序集自动完成注册与注入：
+Annotate members to declare dependencies; the framework scans all assemblies at startup and wires everything automatically:
 
 ```csharp
 public class UserService : BaseService<User, UserDao>, IUserService
 {
-    [Auto]                          // Scoped 生命周期（默认）
+    [Auto]                          // Scoped lifetime (default)
     protected MemoryCacheManager Cache = default!;
 
-    [Singleton]                     // Singleton 生命周期
+    [Singleton]                     // Singleton lifetime
     protected SomeWorker Worker = default!;
 
-    [Auto]                          // Lazy<T> 延迟解析，打破服务间循环依赖
+    [Auto]                          // Lazy<T> deferred resolution breaks circular dependencies
     protected Lazy<IOtherService> Other = default!;
 }
 ```
 
-- 服务类可标注 `[Service("服务名")]` 实现命名注册，通过服务定位器按名解析
-- 两个服务禁止以立即 `[Auto]` 互相注入，启动期环检测会直接失败并给出提示
-- `SingletonServiceLocator` / `ScopeServiceLocator` 提供静态服务定位
+- Service classes can be marked `[Service("name")]` for named registration and resolved by name via the service locators
+- Two services must not inject each other with eager `[Auto]`; startup cycle detection fails fast with a clear message
+- `SingletonServiceLocator` / `ScopeServiceLocator` provide static service location
 
-### 2. 数据访问（内置 ORM）
+### 2. Data Access (Built-in ORM)
 
-**实体映射**：
+**Entity mapping**:
 
 ```csharp
 [TableMapping("user")]
@@ -160,15 +160,15 @@ public class User
     [FieldMapping("username")]
     public string? Username { get; set; }
 
-    [FieldMapping(EnumString = true)]       // 枚举以字符串存库（默认存整型）
+    [FieldMapping(EnumString = true)]       // store enum as string (integer by default)
     public CommonStatus Status { get; set; }
 
-    [FieldMapping(NotColumn = true)]        // 非表字段，不参与 SQL 生成
+    [FieldMapping(NotColumn = true)]        // not a table column; excluded from SQL generation
     public string? DisplayName { get; set; }
 }
 ```
 
-**三层结构**（Entity → Dao → Service）：
+**Three-tier structure** (Entity → Dao → Service):
 
 ```csharp
 public interface UserDao : ISuperDao<User> { }
@@ -176,15 +176,15 @@ public interface UserDao : ISuperDao<User> { }
 public class UserService : BaseService<User, UserDao>, IUserService { }
 ```
 
-Dao 与 Service 均提供全量同构 API（`SelectOne` / `SelectList` / `SelectPage` / `SelectById(s)` / `Insert` / `Update` / `Delete` / `Count` / 批量 / 事务），并各有一套异步版本。
+Dao and Service expose the same full API surface (`SelectOne` / `SelectList` / `SelectPage` / `SelectById(s)` / `Insert` / `Update` / `Delete` / `Count` / batch operations / transactions), each with an async twin.
 
-**查询的三种姿势**：
+**Three ways to query**:
 
 ```csharp
-// ① Lambda 表达式
+// ① Lambda expression
 List<User> users = dao.SelectList(u => u.Status == CommonStatus.Enabled);
 
-// ② LambdaWrapper 动态拼接
+// ② LambdaWrapper for dynamic composition
 LambdaWrapper<User> wrapper = new LambdaWrapper<User>();
 if (!string.IsNullOrEmpty(keyword))
 {
@@ -194,27 +194,27 @@ wrapper.And(u => u.Status == CommonStatus.Enabled);
 wrapper.OrderByDescending(u => u.Id);
 users = dao.SelectList(wrapper);
 
-// ③ DataFilter：HTTP 查询参数直接映射为 SQL 条件
+// ③ DataFilter: map HTTP query parameters straight into SQL conditions
 [Filter]
 public class UserFilter : DataFilter
 {
     public CommonStatus? Status { get; set; }
 
     [FilterItem(Operator = FilterOperatorType.Like, FieldName = "username",
-                OrFields = "true_name,mobile,email")]   // 关键字模糊匹配多个字段
+                OrFields = "true_name,mobile,email")]   // fuzzy-match across multiple fields
     public string? Keywords { get; set; }
 
-    public ValueScope<DateTime?>? CreateTime { get; set; }   // 区间条件
+    public ValueScope<DateTime?>? CreateTime { get; set; }   // range condition
 }
 List<User> result = dao.SelectList(new FilterWrapper<User>(filter));
 ```
 
-**分页与事务**：
+**Paging and transactions**:
 
 ```csharp
 PagerInfo pager = new PagerInfo { PageIndex = 1, PageSize = 20 };
 List<User> page = dao.SelectPage(pager, wrapper);
-long total = pager.RecordCount!.Value;        // 分页查询后自动回填总数
+long total = pager.RecordCount!.Value;        // automatically filled after the paged query
 
 dao.BeginTransaction();
 try
@@ -229,14 +229,14 @@ catch
 }
 ```
 
-**多数据库**：在 `DatabaseFactory:Clients` 中配置多个客户端即可同时连接多个数据库（可跨数据库类型），Dao 按实体映射自动路由；连接字符串支持通过 `IConnectionStringDecoder` 自定义解密。
+**Multiple databases**: configure several clients under `DatabaseFactory:Clients` to connect to multiple databases at once (even of different kinds); Dao instances route automatically by entity mapping. Connection strings can be decrypted via a custom `IConnectionStringDecoder`.
 
-### 3. 声明式 HTTP 客户端
+### 3. Declarative HTTP Client
 
-定义接口并标注请求特性，框架通过 Emit 动态生成异步代理：
+Define an interface with request attributes; the framework emits an async proxy via Emit:
 
 ```csharp
-[SuperClient(Name = "UserApi", Handler = typeof(UserApiHandler))]   // Name 对应配置中的客户端
+[SuperClient(Name = "UserApi", Handler = typeof(UserApiHandler))]   // Name maps to a configured client
 public interface IUserApi : ISuperHttpClient
 {
     [SuperGet(Resource = "api/user/{id}")]
@@ -253,112 +253,112 @@ public interface IUserApi : ISuperHttpClient
 }
 ```
 
-- 参数绑定特性：`[RequestHeader]` `[RequestParam]` `[RequestPathParam]` `[RequestBody]` `[RequestCookie]` `[RequestFormFile]`
-- 实现拦截器 `ISuperClientInterceptor` 统一处理鉴权、签名、日志等横切逻辑
-- 接口方法须为 `Task<T>` 异步签名
+- Parameter binding attributes: `[RequestHeader]` `[RequestParam]` `[RequestPathParam]` `[RequestBody]` `[RequestCookie]` `[RequestFormFile]`
+- Implement `ISuperClientInterceptor` to handle cross-cutting concerns such as authentication, signing and logging
+- Interface methods must have `Task<T>` async signatures
 
-### 4. Web 开发
+### 4. Web Development
 
-- **统一返回**：`R` / `R<T>` 结果模型（Code / Message / Data / ValidationResult）
-- **模型验证**：`[Valid]` 标记参数或属性，配合 20 余种验证特性（`Required` `EmailFormat` `MobileFormat` `PasswordFormat` `StringLength` `IntegerRange` `RegexFormat` 等），验证失败自动返回结构化错误
-- **接口限流**：注册 `services.AddRampageRateLimitFilter()` 后按特性标记
+- **Uniform result**: `R` / `R<T>` result model (Code / Message / Data / ValidationResult)
+- **Model validation**: mark parameters or properties with `[Valid]`, combined with 20+ validation attributes (`Required` `EmailFormat` `MobileFormat` `PasswordFormat` `StringLength` `IntegerRange` `RegexFormat`, etc.); failures return structured errors automatically
+- **Rate limiting**: register `services.AddRampageRateLimitFilter()` and annotate actions
 
 ```csharp
-[RateLimit("login", 5, 60)]      // 60 秒窗口内每 IP 最多 5 次
+[RateLimit("login", 5, 60)]      // max 5 hits per IP within a 60s window
 public R Login(LoginInput input) { ... }
 ```
 
-- **接口幂等**：携带 `Idempotency-Key` 请求头的写接口，首次成功响应被缓存，重复请求原样回放
-- **JWT 认证**：`JwtTokenManager` 签发与校验 Access / Refresh 双令牌，支持多客户端独立配置
-- **自动时区**：`[AutoTimeZone]` 标记 DTO，JSON 序列化时按访问者时区自动转换时间展示
-- **链路追踪**：`CorrelationIdMiddleware` 为每个请求生成/透传追踪 ID
-- **控制器基类**：`SuperController` / `SuperApiController` 内置服务定位、本地化、请求级缓存
+- **Idempotency**: write endpoints carrying an `Idempotency-Key` header have their first successful response cached and replayed verbatim on retries
+- **JWT authentication**: `JwtTokenManager` issues and validates access/refresh token pairs, with independent configuration per client
+- **Automatic timezones**: annotate DTOs with `[AutoTimeZone]` and JSON serialization converts timestamps to the visitor's timezone automatically
+- **Tracing**: `CorrelationIdMiddleware` generates/propagates a correlation ID for every request
+- **Controller bases**: `SuperController` / `SuperApiController` ship with service location, localization and per-request caching
 
-### 5. Redis 分布式组件
+### 5. Redis Distributed Components
 
 ```csharp
-RedisHelper redis = new RedisHelper();          // String/Hash/List/Set/ZSet 常规操作，自动 Key 前缀
+RedisHelper redis = new RedisHelper();          // String/Hash/List/Set/ZSet operations with automatic key prefix
 
-// 分布式锁：获取失败返回 null；看门狗自动续期，Dispose 按 Token 安全释放
+// Distributed lock: returns null when not acquired; watchdog auto-renews; Dispose releases safely by token
 var locker = RedisDistributedLock.TryAcquire(redis, "order:sync", TimeSpan.FromSeconds(30),
                                             retryCount: 2, retryDelay: TimeSpan.FromMilliseconds(100));
 if (locker != null)
 {
-    try { /* 临界区逻辑 */ }
+    try { /* critical section */ }
     finally { locker.Dispose(); }
 }
 ```
 
-- `RedisFactory` 支持多 Redis 客户端与 Key 前缀隔离
-- `RedisIdempotencyStore` / `RedisRateLimiter` 为幂等与限流提供分布式实现
-- 连接字符串支持 `IRedisDecoder` 自定义解密
+- `RedisFactory` supports multiple Redis clients with key-prefix isolation
+- `RedisIdempotencyStore` / `RedisRateLimiter` provide distributed implementations for idempotency and rate limiting
+- Connection strings can be decrypted via a custom `IRedisDecoder`
 
-### 6. Cron 定时任务
+### 6. Cron Scheduling
 
 ```csharp
-// 注册（随宿主自动启停）
+// Register (starts and stops with the host)
 services.AddRampageScheduler();
 
-// 声明任务：标准 5 字段 Cron（分 时 日 月 周），同一任务上一次未跑完时自动跳过本次触发
+// Declare jobs: standard 5-field cron (minute hour day month weekday); overlapping runs of the same job are skipped
 scheduler.Register("daily-report", "0 3 * * *", async ct => await BuildReportAsync(ct));
 scheduler.Register("cache-warmup", "*/30 * * * *", WarmUpCache, runImmediately: true);
 
-// 查看任务运行快照（名称 / Cron / 上次执行 / 下次触发 / 最近错误）
+// Inspect job snapshots (name / cron / last run / next trigger / last error)
 var jobs = scheduler.GetJobs();
 ```
 
-多实例部署时接入 Redis 分布式锁，保证同一任务同一时刻仅在一个实例执行：
+For multi-instance deployments, plug in the Redis distributed lock so each job runs on exactly one instance at a time:
 
 ```csharp
 services.AddRampageScheduler();
-services.AddRampageRedisJobLock();     // 替换默认进程内锁
+services.AddRampageRedisJobLock();     // replaces the default in-process lock
 ```
 
-### 7. 弹性（重试 / 熔断 / 超时）
+### 7. Resilience (Retry / Circuit Breaker / Timeout)
 
 ```csharp
 services.AddRampageResilience();
 
 var result = await resilience.ExecuteAsync(
-    "query-user",                                              // 操作键，熔断器按此隔离
+    "query-user",                                              // operation key; breakers are isolated by it
     new ResiliencePolicy
     {
         MaxRetries = 3,
-        RetryBaseDelay = TimeSpan.FromMilliseconds(100),       // 默认指数退避
-        BreakerFailureThreshold = 20,                          // 连续失败 20 次熔断 30 秒
+        RetryBaseDelay = TimeSpan.FromMilliseconds(100),       // exponential backoff by default
+        BreakerFailureThreshold = 20,                          // open the breaker after 20 consecutive failures for 30s
         Timeout = TimeSpan.FromSeconds(3)
     },
     async ct => await QueryUserAsync(ct));
 ```
 
-实现 `IResilienceProvider` 即可整体替换为 Polly 等第三方实现，业务代码零改动。
+Implement `IResilienceProvider` to swap the whole thing for Polly or another library — business code stays untouched.
 
-### 8. 常用工具集
+### 8. Utility Toolbox
 
-| 工具 | 能力 |
+| Tool | Capabilities |
 | --- | --- |
-| `SecurityTool` | MD5 / SHA1 / SHA256 / HMAC-SHA256 / PBKDF2 口令哈希与校验 / DES / AES（CBC） |
-| `SnowflakeTool` | 雪花 ID（可配置 WorkerId，支持字符串形式） |
-| `MapperTool` | 同名属性对象映射 |
-| `CsvTool` / `ZipTool` | CSV 读写、ZIP 压缩解压 |
-| `SensitiveWordFilter` | 敏感词过滤 |
-| `VerificationCodeManager` | 10 种样式图形验证码（SkiaSharp 跨平台） |
-| `StringTool` / `DateTimeTool` / `MathTool` / `ByteTool` / `FileTool` / `PathTool` / `IdTool` | 常用基础工具 |
+| `SecurityTool` | MD5 / SHA1 / SHA256 / HMAC-SHA256 / PBKDF2 password hashing & verification / DES / AES (CBC) |
+| `SnowflakeTool` | Snowflake IDs (configurable WorkerId, string form supported) |
+| `MapperTool` | Same-name property object mapping |
+| `CsvTool` / `ZipTool` | CSV read/write, ZIP compress/decompress |
+| `SensitiveWordFilter` | Sensitive-word filtering |
+| `VerificationCodeManager` | 10 styles of image CAPTCHA (cross-platform via SkiaSharp) |
+| `StringTool` / `DateTimeTool` / `MathTool` / `ByteTool` / `FileTool` / `PathTool` / `IdTool` | Common everyday utilities |
 
-另有基于 log4net 的结构化日志（多环境配置）、JSON 多语言本地化模块、内存缓存管理等基础组件。
+Also included: structured logging on log4net (per-environment configuration), JSON-based multi-language localization, in-memory cache management and other foundational components.
 
-### 9. RBAC 管理后台模块
+### 9. RBAC Admin Module
 
-`Rampage.Management.Core` + `Rampage.Management.Web` 提供开箱即用的后台管理类库：
+`Rampage.Management.Core` + `Rampage.Management.Web` provide ready-to-use admin libraries:
 
-- 管理员、角色组、管理菜单、权限点、操作日志、登录日志完整数据模型
-- 注解式权限声明（`PermissionAction` / `PermissionModule` / `PermissionResource`），从代码自动加载权限清单
-- Passport 登录（JWT）、个人中心、后台 API 与 MVC 控制器基类（`SuperManagementController` / `SuperManagementApiController`）
-- 自带各数据库建表脚本，配合 DatabaseDeployer 一键初始化
+- Complete data model for administrators, groups, admin menus, permission points, operation logs and login logs
+- Annotation-driven permission declaration (`PermissionAction` / `PermissionModule` / `PermissionResource`); the permission manifest is loaded straight from code
+- Passport login (JWT), personal center, admin API and MVC controller bases (`SuperManagementController` / `SuperManagementApiController`)
+- Ships with table-creation scripts for each database; initialize in one shot together with the DatabaseDeployer
 
-### 10. 开发工具链
+### 10. Developer Toolchain
 
-**代码生成器（Rampage.CodeGenerator）** — 连接数据库后按模板批量生成三层代码，模板可自定义：
+**Code Generator (Rampage.CodeGenerator)** — connects to a database and generates three-tier code from customizable templates:
 
 ```json
 {
@@ -375,7 +375,7 @@ var result = await resilience.ExecuteAsync(
 }
 ```
 
-**数据库部署器（Rampage.DatabaseDeployer）** — 将 `SqlScripts` 目录下带版本号的 SQL 脚本按顺序增量执行，支持多库部署：
+**Database Deployer (Rampage.DatabaseDeployer)** — executes version-numbered SQL scripts under `SqlScripts` incrementally in order, with multi-database deployment support:
 
 ```json
 { "ScriptSetting": { "Root": "SqlScripts", "VersionPattern": "^(?<Version>\\d+)[^0-9]+?.+?\\.sql" } }
@@ -383,9 +383,9 @@ var result = await resilience.ExecuteAsync(
 
 ---
 
-## 数据库支持
+## Database Support
 
-| 数据库 | 驱动 |
+| Database | Driver |
 | --- | --- |
 | MySQL / MariaDB | MySqlConnector |
 | SQL Server | Microsoft.Data.SqlClient |
@@ -393,46 +393,46 @@ var result = await resilience.ExecuteAsync(
 | SQLite | Microsoft.Data.Sqlite |
 | Oracle | Oracle.ManagedDataAccess.Core |
 
-## 解决方案结构
+## Repository Structure
 
 ```
 Rampage
-├── Rampage/                          核心库
-│   ├── Caching/                      内存缓存
-│   ├── Configuration/                配置管理（SuperConfig）
-│   ├── Data/                         数据访问层（ORM）
-│   ├── DependencyInjection/          自动依赖注入
-│   ├── Dynamic/                      Emit 动态构建（Dao/HttpClient）
-│   ├── Enums/                        枚举与枚举读取器
-│   ├── Hierarchy/                    Service/Dao 基类
-│   ├── Idempotency/                  幂等抽象
-│   ├── Localization/                 多语言本地化
-│   ├── Log/                          log4net 日志
-│   ├── Mapping/                      对象映射
-│   ├── Model/                        R / PageListData 等通用模型
-│   ├── Net/                          声明式 HTTP 客户端
-│   ├── RateLimit/                    限流抽象
-│   ├── Reflection/                   反射加速（EmitTool）
-│   ├── Security/                     登录尝试追踪
-│   ├── Threading/                    多线程工作器
-│   ├── Utilities/                    工具集
-│   └── Validation/                   数据验证
-├── Rampage.Web/                      Web 库（JWT/中间件/时区/主题）
-├── Rampage.Drawing/                  验证码与绘图
-├── DatabaseLibrary/                  Dapper + 五大数据库 Provider
-├── Distributed/Rampage.RedisLibrary/ Redis 分布式组件
-├── Resilience/Rampage.Resilience/    重试/熔断/超时
-├── Scheduling/Rampage.Scheduling/    Cron 调度
-├── Management/                       RBAC 管理后台类库
-└── Tools/                            代码生成器、数据库部署器
+├── Rampage/                          Core library
+│   ├── Caching/                      In-memory cache
+│   ├── Configuration/                Configuration management (SuperConfig)
+│   ├── Data/                         Data access layer (ORM)
+│   ├── DependencyInjection/          Automatic dependency injection
+│   ├── Dynamic/                      Emit builders (Dao/HttpClient)
+│   ├── Enums/                        Enums and enum reader
+│   ├── Hierarchy/                    Service/Dao base classes
+│   ├── Idempotency/                  Idempotency abstractions
+│   ├── Localization/                 Multi-language localization
+│   ├── Log/                          log4net logging
+│   ├── Mapping/                      Object mapping
+│   ├── Model/                        Common models (R / PageListData, etc.)
+│   ├── Net/                          Declarative HTTP client
+│   ├── RateLimit/                    Rate limiting abstractions
+│   ├── Reflection/                   Reflection acceleration (EmitTool)
+│   ├── Security/                     Login attempt tracking
+│   ├── Threading/                    Threading worker
+│   ├── Utilities/                    Utilities
+│   └── Validation/                   Data validation
+├── Rampage.Web/                      Web library (JWT/middleware/timezone/themes)
+├── Rampage.Drawing/                  CAPTCHA and drawing
+├── DatabaseLibrary/                  Dapper + five database providers
+├── Distributed/Rampage.RedisLibrary/ Redis distributed components
+├── Resilience/Rampage.Resilience/    Retry/breaker/timeout
+├── Scheduling/Rampage.Scheduling/    Cron scheduling
+├── Management/                       RBAC admin libraries
+└── Tools/                            Code generator, database deployer
 ```
 
-## 许可协议
+## License
 
-本项目基于 [MIT License](LICENSE) 开源。
+This project is open sourced under the [MIT License](LICENSE).
 
-## 交流反馈
+## Feedback
 
-- 个人网站：[http://www.1986z.com/](http://www.1986z.com/)
-- GitHub：[@XTiger1986](https://github.com/XTiger1986)
-- 欢迎通过 [Issue](https://github.com/XTiger1986/Rampage/issues) 提交问题与建议
+- Website: [http://www.1986z.com/](http://www.1986z.com/)
+- GitHub: [@XTiger1986](https://github.com/XTiger1986)
+- Issues and suggestions are welcome via the [issue tracker](https://github.com/XTiger1986/Rampage/issues)
