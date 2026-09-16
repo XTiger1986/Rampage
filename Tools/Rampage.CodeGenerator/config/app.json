@@ -1,0 +1,26 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ScriptSetting": {
+    "Root": "SqlScripts",
+    "VersionPattern": "^(?<Version>\\d+)[^0-9]+?.+?\\.sql"
+  },
+  "ConnectionSetting": [
+    {
+      "Name": "Rampage.SourcePower",
+      "DatabaseLibrary": "Rampage.DatabaseLibrary.PostgreSQL",
+      "Provider": "PgSqlClient",
+      "ConnectionString": "Host=127.0.0.1;Port=5432;Database=sourcepower;Username=rampage;Password=rampage;",
+      "GenerateTables": "*"
+    }
+  ],
+  "GenerateSetting": {
+    "TemplateRoot": "Templates",
+    "OutputRoot": "Outputs"
+  }
+}

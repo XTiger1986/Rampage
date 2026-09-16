@@ -1,0 +1,11 @@
+﻿{
+  "DatabaseLibrary": "Rampage.DatabaseLibrary.PostgreSQL",
+  "Provider": "PgSqlClient",
+  "ScriptDirectoryPath": "D:\\Studio\\XTiger1986\\Rampage.SourcePower\\documents\\数据表设计\\源力星球表设计\\",
+  "ConnectionString": "Host=127.0.0.1;Port=5432;Database=sourcepower;Username=rampage;Password=rampage;",
+  "VersionTableName": "rampage_deploy_version",
+  "GetVersionSql": "SELECT DbVersion FROM rampage_deploy_version LIMIT 1",
+  "UpdateVersionSql": "UPDATE rampage_deploy_version SET DbVersion = {0}",
+  "CountVersionTableSql": "SELECT COUNT(*) FROM information_schema.tables  WHERE table_catalog = 'sourcepower' AND table_schema NOT IN ('pg_catalog', 'information_schema')  AND table_name = 'rampage_deploy_version';",
+  "CreateVersionTableSql": "CREATE TABLE rampage_deploy_version (DbVersion bigint NOT NULL DEFAULT 1); INSERT INTO rampage_deploy_version (DbVersion) VALUES (1);"
+}

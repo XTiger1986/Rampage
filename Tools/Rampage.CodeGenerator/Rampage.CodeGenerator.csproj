@@ -1,0 +1,76 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Templates\RampageFrame\Dao.cs" />
+    <Compile Remove="Templates\RampageFrame\Model.cs" />
+    <Compile Remove="Templates\RampageFrame\Service.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Templates\RampageFrame\template.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Templates\RampageFrame\template.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Templates\RampageFrame\Service.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Templates\RampageFrame\Dao.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Templates\RampageFrame\Model.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="MySqlConnector" Version="2.4.0" />
+	<PackageReference Include="Npgsql" Version="10.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\DatabaseLibrary\Rampage.Dapper\Rampage.Dapper.csproj" />
+    <ProjectReference Include="..\..\DatabaseLibrary\Rampage.DatabaseLibrary.MySql\Rampage.DatabaseLibrary.MySql.csproj" />
+    <ProjectReference Include="..\..\DatabaseLibrary\Rampage.DatabaseLibrary.PostgreSQL\Rampage.DatabaseLibrary.PostgreSQL.csproj" />
+    <ProjectReference Include="..\..\DatabaseLibrary\Rampage.DatabaseLibrary.Oracle\Rampage.DatabaseLibrary.Oracle.csproj" />
+    <ProjectReference Include="..\..\Rampage\Rampage.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="config\app.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="config\app.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="config\app.Production.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="config\log4net.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="config\log4net.Development.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="config\log4net.Production.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

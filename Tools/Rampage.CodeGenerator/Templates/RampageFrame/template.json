@@ -1,0 +1,19 @@
+﻿{
+  "Name": "Rampage标准代码模板",
+  "Language": "CSharp",
+  "RootNamespace": "Rampage.SourcePower",
+  "Files": [
+    {
+      "FileName": "Model.cs",
+      "OutputFile": "Model\\@{EntityName}.cs"
+    },
+    {
+      "FileName": "Service.cs",
+      "OutputFile": "Service\\@{EntityName}Service.cs"
+    },
+    {
+      "FileName": "Dao.cs",
+      "OutputFile": "Dao\\@{EntityName}Dao.cs"
+    }
+  ]
+}
