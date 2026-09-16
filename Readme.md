@@ -2,7 +2,7 @@
 
 ![.NET](https://img.shields.io/badge/.NET-8.0%2B-512BD4) ![C#](https://img.shields.io/badge/C%23-12-239120) ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-6C7A89) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**English | [简体中文](Readme.md)**
+**English | [简体中文](Readme_cn.md)**
 
 Rampage is a personally developed, open-source, full-stack general-purpose .NET framework (.NET 8+). Built around the principles of "attribute-driven, convention over configuration", its bootstrapper (`RampageBooter`) combined with Emit dynamic compilation automatically performs service scanning, dependency wiring and database client initialization at startup, letting you build a complete application from the data layer to the web layer with minimal boilerplate.
 

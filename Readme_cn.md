@@ -2,7 +2,7 @@
 
 ![.NET](https://img.shields.io/badge/.NET-8.0%2B-512BD4) ![C#](https://img.shields.io/badge/C%23-12-239120) ![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%7C%20Linux%20%7C%20macOS-6C7A89) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**[English](Readme_en.md) | 简体中文**
+**[English](Readme.md) | 简体中文**
 
 Rampage 是一套个人开发、开源的全栈式 .NET 通用开发框架（.NET 8+）。它以「特性驱动、约定优于配置」为设计核心，通过启动器（`RampageBooter`）+ Emit 动态编译，在应用启动时自动完成服务扫描、依赖装配与数据库客户端初始化，让你以最少的样板代码搭建从数据层到 Web 层的完整应用。
 
