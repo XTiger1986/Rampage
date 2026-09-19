@@ -1,19 +1,27 @@
 ﻿{
   "Name": "Rampage标准代码模板",
   "Language": "CSharp",
-  "RootNamespace": "Rampage.SourcePower",
+  "RootNamespace": "Rampage.ProjectName",
   "Files": [
     {
       "FileName": "Model.cs",
       "OutputFile": "Model\\@{EntityName}.cs"
     },
     {
+      "FileName": "IService.cs",
+      "OutputFile": "Service\\I@{EntityName}Service.cs"
+    },
+    {
       "FileName": "Service.cs",
-      "OutputFile": "Service\\@{EntityName}Service.cs"
+      "OutputFile": "Service\\Implementations\\@{EntityName}Service.cs"
+    },
+    {
+      "FileName": "IDao.cs",
+      "OutputFile": "Dao\\I@{EntityName}Dao.cs"
     },
     {
       "FileName": "Dao.cs",
-      "OutputFile": "Dao\\@{EntityName}Dao.cs"
+      "OutputFile": "Dao\\Implementations\\@{EntityName}Dao.cs"
     }
   ]
 }

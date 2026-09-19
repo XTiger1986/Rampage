@@ -17,6 +17,13 @@
       "Provider": "PgSqlClient",
       "ConnectionString": "Host=127.0.0.1;Port=5432;Database=sourcepower;Username=rampage;Password=rampage;",
       "GenerateTables": "*"
+    },
+    {
+      "Name": "Rampage.NaturalistAtlas",
+      "DatabaseLibrary": "Rampage.DatabaseLibrary.PostgreSQL",
+      "Provider": "PgSqlClient",
+      "ConnectionString": "Host=127.0.0.1;Port=5432;Database=naturalist;Username=rampage;Password=rampage;",
+      "GenerateTables": "*"
     }
   ],
   "GenerateSetting": {

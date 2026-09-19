@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <Compile Remove="Templates\RampageFrame\Dao.cs" />
+    <Compile Remove="Templates\RampageFrame\IDao.cs" />
+    <Compile Remove="Templates\RampageFrame\IService.cs" />
     <Compile Remove="Templates\RampageFrame\Model.cs" />
     <Compile Remove="Templates\RampageFrame\Service.cs" />
   </ItemGroup>
@@ -24,6 +26,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Templates\RampageFrame\IDao.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="Templates\RampageFrame\IService.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="Templates\RampageFrame\Service.cs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
