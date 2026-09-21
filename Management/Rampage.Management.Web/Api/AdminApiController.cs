@@ -17,20 +17,25 @@ using System;
 namespace Rampage.Management.Web.Api
 {
     /// <summary>
-    /// 
+    /// 管理后台 API 控制器（路由 api/admin）：提供管理组、管理员、管理菜单的查询与维护端点，全部纳入权限系统管控
+    /// Management backend API controller (route api/admin): provides query and maintenance endpoints for management groups, administrators and management menus, all governed by the permission system
     /// </summary>
     [Route("api/admin")]
     public class AdminApiController : SuperManagementApiController
     {
+        /// <summary>
+        /// 管理组服务，由 [Auto] 属性注入 / The management group service, injected via [Auto]
+        /// </summary>
         [Auto]
         protected IManageGroupService ManageGroupService = default!;
 
         #region ManageGroup
 
         /// <summary>
-        /// 
+        /// 查询管理组列表 / Queries the management group list
         /// </summary>
-        /// <returns></returns>
+        /// <param name="status">状态过滤，null 表示全部 / The status filter; null for all</param>
+        /// <returns>管理组列表 / The management group list</returns>
         [PermissionAction(Title = "Query Management Group List", Type = PermissionActionType.Query, Resource = "GroupManagement")]
         [HttpGet("group/list")]
         public R QueryGetManageGroupList(CommonStatus? status = null)
@@ -40,10 +45,10 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 查询指定管理组 / Queries the specified management group
         /// </summary>
-        /// <param name="groupId"></param>
-        /// <returns></returns>
+        /// <param name="groupId">管理组ID / The management group id</param>
+        /// <returns>管理组数据，不存在时 Data 为 null / The management group; Data is null when it does not exist</returns>
         [PermissionAction(Title = "Query Specified Management Group", Type = PermissionActionType.Query, Resource = "GroupManagement")]
         [HttpGet("group/get/{groupId}")]
         public R QueryGetManageGroup(int groupId)
@@ -53,9 +58,11 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 保存管理组（Id 大于 0 更新，否则新增）/ Saves a management group (updates when Id &gt; 0, otherwise inserts)
         /// </summary>
-        /// <returns></returns>
+        /// <param name="input">管理组数据 / The management group data</param>
+        /// <returns>操作结果 / The operation result</returns>
+        /// <remarks>仅"新增成功且提交了 ResourceIds"时才会同步该组的权限关联；更新（Id&gt;0）分支直接返回、不同步权限。异常统一捕获、记日志后以失败结果返回。</remarks>
         [PermissionAction(Title = "Save Management Group", Type = PermissionActionType.Operation, Resource = "GroupOperation")]
         [RecordOperationFilter]
         [HttpPost("group/save")]
@@ -91,9 +98,11 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 变更管理组状态（启用/禁用）/ Changes a management group's status (enable/disable)
         /// </summary>
-        /// <returns></returns>
+        /// <param name="groupId">管理组ID / The management group id</param>
+        /// <param name="status">目标状态 / The target status</param>
+        /// <returns>操作结果 / The operation result</returns>
         [PermissionAction(Title = "Change Management Group Status", Type = PermissionActionType.Operation, Resource = "GroupOperation")]
         [RecordOperationFilter]
         [HttpPost("group/status/change")]
@@ -112,9 +121,10 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 删除指定管理组 / Deletes the specified management group
         /// </summary>
-        /// <returns></returns>
+        /// <param name="groupId">管理组ID / The management group id</param>
+        /// <returns>操作结果 / The operation result</returns>
         [PermissionAction(Title = "Delete Specified Management Group", Type = PermissionActionType.Delete, Resource = "GroupDelete")]
         [RecordOperationFilter]
         [HttpDelete("group/delete/{groupId}")]
@@ -137,9 +147,9 @@ namespace Rampage.Management.Web.Api
         #region Admin
 
         /// <summary>
-        /// 
+        /// 查询当前登录管理员已授权的功能（Action）列表 / Queries the authorized action list of the current logged-in admin
         /// </summary>
-        /// <returns></returns>
+        /// <returns>已授权功能列表（读管理员缓存）/ The authorized action list (from the admin cache)</returns>
         [PermissionAction(Title = "Query Authorized Action List", Type = PermissionActionType.Query, Resource = "AdminManagement")]
         [HttpGet("action/authorized/list")]
         public R QueryGetAuthorizedActionList()
@@ -149,9 +159,10 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 分页查询管理员列表 / Queries the administrator list by page
         /// </summary>
-        /// <returns></returns>
+        /// <returns>列表视图数据（数据列表、分页器与过滤条件）/ The list view data (items, pager and filter)</returns>
+        /// <remarks>分页参数取自 QueryString：page=页码、ps=页大小（默认 20，上限 100）；过滤条件由请求数据渲染为 AdminFilter。</remarks>
         [PermissionAction(Title = "Query Administrator Page List", Type = PermissionActionType.Query, Resource = "AdminManagement")]
         [HttpGet("page")]
         public R QueryGetAdminPageList()
@@ -178,10 +189,10 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 查询指定管理员 / Queries the specified administrator
         /// </summary>
-        /// <param name="adminId"></param>
-        /// <returns></returns>
+        /// <param name="adminId">管理员ID / The administrator id</param>
+        /// <returns>管理员数据，不存在时 Data 为 null / The administrator; Data is null when it does not exist</returns>
         [PermissionAction(Title = "Query Specified Administrator", Type = PermissionActionType.Query, Resource = "AdminManagement")]
         [HttpGet("get/{adminId}")]
         public R QueryGetAdmin([FromRoute] int adminId)
@@ -191,9 +202,11 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 保存管理员（Id 大于 0 更新，否则新增）/ Saves an administrator (updates when Id &gt; 0, otherwise inserts)
         /// </summary>
-        /// <returns></returns>
+        /// <param name="input">管理员数据 / The administrator data</param>
+        /// <returns>操作结果 / The operation result</returns>
+        /// <remarks>仅"新增成功且提交了 ResourceIds"时才会同步该管理员的权限关联；更新（Id&gt;0）分支直接返回、不同步权限。异常统一捕获、记日志后以失败结果返回。</remarks>
         [PermissionAction(Title = "Save Administrator", Type = PermissionActionType.Operation, Resource = "AdminOperation")]
         [RecordOperationFilter]
         [HttpPost("save")]
@@ -231,9 +244,11 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 变更管理员状态（启用/禁用）/ Changes an administrator's status (enable/disable)
         /// </summary>
-        /// <returns></returns>
+        /// <param name="menuId">管理员ID（参数名 menuId 为历史遗留，实际按管理员ID处理）/ The administrator id (the parameter name menuId is a legacy misnomer; it is treated as the administrator id)</param>
+        /// <param name="status">目标状态 / The target status</param>
+        /// <returns>操作结果 / The operation result</returns>
         [PermissionAction(Title = "Change Administrator Status", Type = PermissionActionType.Operation, Resource = "AdminOperation")]
         [RecordOperationFilter]
         [HttpPost("status/change")]
@@ -252,9 +267,10 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 删除指定管理员 / Deletes the specified administrator
         /// </summary>
-        /// <returns></returns>
+        /// <param name="adminId">管理员ID / The administrator id</param>
+        /// <returns>操作结果 / The operation result</returns>
         [PermissionAction(Title = "Delete Specified Administrator", Type = PermissionActionType.Delete, Resource = "AdminDelete")]
         [RecordOperationFilter]
         [HttpDelete("delete/{adminId}")]
@@ -277,10 +293,10 @@ namespace Rampage.Management.Web.Api
         #region ManageMenu
 
         /// <summary>
-        /// 
+        /// 查询管理菜单树 / Queries the management menu tree
         /// </summary>
-        /// <param name="status"></param>
-        /// <returns></returns>
+        /// <param name="status">状态过滤，null 表示全部 / The status filter; null for all</param>
+        /// <returns>树形菜单列表 / The tree-shaped menu list</returns>
         [PermissionAction(Title = "Query Management Menu Tree", Type = PermissionActionType.Query, Resource = "ManageMenuManagement")]
         [HttpGet("menu/tree")]
         public R QueryGetManageMenuTreeList(CommonStatus? status = null)
@@ -290,10 +306,10 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 查询管理菜单平铺列表 / Queries the flat management menu list
         /// </summary>
-        /// <param name="status"></param>
-        /// <returns></returns>
+        /// <param name="status">状态过滤，null 表示全部 / The status filter; null for all</param>
+        /// <returns>菜单列表 / The menu list</returns>
         [PermissionAction(Title = "Query Management Menu List", Type = PermissionActionType.Query, Resource = "ManageMenuManagement")]
         [HttpGet("menu/list")]
         public R QueryGetManageMenuList(CommonStatus? status = null)
@@ -303,10 +319,10 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 查询指定管理菜单 / Queries the specified management menu
         /// </summary>
-        /// <param name="status"></param>
-        /// <returns></returns>
+        /// <param name="menuId">菜单ID / The menu id</param>
+        /// <returns>菜单数据，不存在时 Data 为 null / The menu; Data is null when it does not exist</returns>
         [PermissionAction(Title = "Query Specified Management Menu", Type = PermissionActionType.Query, Resource = "ManageMenuManagement")]
         [HttpGet("menu/get/{menuId}")]
         public R QueryGetManageMenu(int menuId)
@@ -316,9 +332,9 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 查询当前登录管理员已授权的菜单树 / Queries the authorized menu tree of the current logged-in admin
         /// </summary>
-        /// <returns></returns>
+        /// <returns>已授权树形菜单列表（读管理员缓存）/ The authorized tree-shaped menu list (from the admin cache)</returns>
         [PermissionAction(Title = "Query Authorized Management Menu Tree", Type = PermissionActionType.Query, Resource = "ManageMenuManagement")]
         [HttpGet("menu/authorized/list")]
         public R QueryGetAuthorizedManageMenuTreeList()
@@ -328,9 +344,10 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 保存管理菜单（Id 大于 0 更新，否则新增）/ Saves a management menu (updates when Id &gt; 0, otherwise inserts)
         /// </summary>
-        /// <returns></returns>
+        /// <param name="input">菜单数据 / The menu data</param>
+        /// <returns>操作结果 / The operation result</returns>
         [PermissionAction(Title = "Save Management Menu", Type = PermissionActionType.Operation, Resource = "ManageMenuOperation")]
         [RecordOperationFilter]
         [HttpPost("menu/save")]
@@ -361,9 +378,11 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 变更管理菜单状态（启用/禁用）/ Changes a management menu's status (enable/disable)
         /// </summary>
-        /// <returns></returns>
+        /// <param name="menuId">菜单ID / The menu id</param>
+        /// <param name="status">目标状态 / The target status</param>
+        /// <returns>操作结果 / The operation result</returns>
         [PermissionAction(Title = "Change Management Menu Status", Type = PermissionActionType.Operation, Resource = "ManageMenuOperation")]
         [RecordOperationFilter]
         [HttpPost("menu/status/change")]
@@ -382,9 +401,10 @@ namespace Rampage.Management.Web.Api
         }
 
         /// <summary>
-        /// 
+        /// 删除指定管理菜单 / Deletes the specified management menu
         /// </summary>
-        /// <returns></returns>
+        /// <param name="menuId">菜单ID / The menu id</param>
+        /// <returns>操作结果 / The operation result</returns>
         [PermissionAction(Title = "Delete Specified Management Menu", Type = PermissionActionType.Delete, Resource = "ManageMenuDelete")]
         [RecordOperationFilter]
         [HttpDelete("menu/delete/{menuId}")]

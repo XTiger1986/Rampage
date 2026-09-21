@@ -26,23 +26,31 @@ namespace Rampage.Management.BLL
 {
 
     /// <summary>
-    /// 
+    /// 管理员业务逻辑实现：登录认证与令牌下发/刷新、增删改查、密码与头像维护、管理组分配
+    /// Administrator business logic: login authentication and token issuing/refreshing, CRUD, password and avatar maintenance, group assignment
     /// </summary>
     public class AdminService : ManagementService<Admin, IAdminDao>, IAdminService
     {
 
+        /// <summary>Web 宿主环境（用于保存头像文件） / The web host environment (used to save avatar files)</summary>
         [Auto]
         protected IWebHostEnvironment WebHostEnvironment = default!;
 
+        /// <summary>管理组业务逻辑（用于填充管理员所属组） / The management group service (used to populate admin groups)</summary>
         [Auto]
         protected IManageGroupService ManageGroupService = default!;
 
+        /// <summary>管理员-管理组关联数据访问 / Admin-group membership data access</summary>
         [Auto]
         protected IAdminInGroupDao AdminInGroupDao = default!;
+        /// <summary>管理员登录日志数据访问 / Admin login log data access</summary>
         [Auto]
         protected IAdminLoginLogDao AdminLoginLogDao = default!;
         
 
+        /// <summary>填充单个管理员的关联数据：清空密码、填充所属管理组 / Populate related data for a single admin: clears the password and fills the groups</summary>
+        /// <param name="dto">管理员DTO / The admin DTO</param>
+        /// <returns>填充后的DTO；入参为 null 时原样返回 / The populated DTO; returned as-is when the input is null</returns>
         public AdminDto? ReadRelatedData(AdminDto? dto)
         {
             if (dto != null)
@@ -59,6 +67,9 @@ namespace Rampage.Management.BLL
             return dto;
         }
 
+        /// <summary>批量填充管理员列表的关联数据：清空密码、填充所属管理组 / Populate related data for a list of admins: clears passwords and fills the groups</summary>
+        /// <param name="adminList">管理员列表 / The admin list</param>
+        /// <returns>填充后的列表 / The populated list</returns>
         public List<AdminDto> ReadRelatedData(List<AdminDto> adminList)
         {
             if (adminList.Count > 0)
@@ -80,9 +91,13 @@ namespace Rampage.Management.BLL
             return adminList;
         }
 
+        /// <summary>将认证令牌下发到客户端：AES 加密后写入 Cookie（会话或持久）并同步写入 Authorization 响应头 / Send the authentication token to the client: AES-encrypted into a cookie (session or persistent) and also written into the Authorization response header</summary>
+        /// <param name="token">认证令牌 / The authentication token</param>
+        /// <param name="cacheDays">缓存（记住）天数；null 为会话 Cookie / Days to cache (remember) the token; null for a session cookie</param>
         public void SetTokenToClientAgent(AuthenticationToken token, double? cacheDays = null)
         {
             string cookieKey = $"{WebGlobals.AuthorizationHeaderKey}.{ManagementVars.AuthenticationConfigName}";
+            // Cookie 键取 SHA1 摘要，避免向客户端暴露内部配置名 / Hash the cookie key with SHA1 to avoid leaking internal config names to the client
             string safeCookieKey = SecurityTool.SHA1(cookieKey);
             DateTime? expireTime = null;
             if (cacheDays != null)
@@ -106,6 +121,8 @@ namespace Rampage.Management.BLL
             }
         }
 
+        /// <summary>从客户端读取认证令牌，依次尝试 Cookie、查询串、Authorization 请求头、表单 / Read the authentication token from the client, trying the cookie, query string, Authorization request header, then the form in order</summary>
+        /// <returns>解密并反序列化后的令牌；不存在或解密失败时为 null / The decrypted and deserialized token; null if missing or decryption fails</returns>
         public AuthenticationToken? GetClientAgentToken()
         {
             string cookieKey = $"{WebGlobals.AuthorizationHeaderKey}.{ManagementVars.AuthenticationConfigName}";
@@ -139,6 +156,7 @@ namespace Rampage.Management.BLL
             return null;
         }
 
+        /// <summary>清除客户端令牌（置空并移除 Cookie） / Clear the client token (empties and removes the cookie)</summary>
         public void ClearClientAgentToken()
         {
             string cookieKey = $"{WebGlobals.AuthorizationHeaderKey}.{ManagementVars.AuthenticationConfigName}";
@@ -148,6 +166,8 @@ namespace Rampage.Management.BLL
             WebTool.RemoveCookie(safeCookieKey);
         }
 
+        /// <summary>获取创始人（启用的超级管理员中 ID 最小者） / Get the founder (the enabled master admin with the smallest ID)</summary>
+        /// <returns>创始人DTO（含所属组）；不存在时为 null / The founder DTO (with groups); null if none exists</returns>
         public AdminDto? GetCreator()
         {
             LambdaWrapper<Admin> wrapper = new LambdaWrapper<Admin>();
@@ -164,6 +184,9 @@ namespace Rampage.Management.BLL
             return null;
         }
 
+        /// <summary>根据ID获取管理员（含所属组，密码已清空） / Get the administrator by ID (with groups, password cleared)</summary>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
+        /// <returns>管理员DTO；不存在时为 null / The admin DTO; null if not found</returns>
         public AdminDto? GetAdminById(int adminId)
         {
             Admin? admin = SelectById(adminId);
@@ -176,6 +199,9 @@ namespace Rampage.Management.BLL
             return null;
         }
 
+        /// <summary>根据用户名获取管理员（含所属组，密码已清空） / Get the administrator by username (with groups, password cleared)</summary>
+        /// <param name="username">用户名 / Username</param>
+        /// <returns>管理员DTO；不存在时为 null / The admin DTO; null if not found</returns>
         public AdminDto? GetAdminByUsername(string username)
         {
             Admin? admin = SelectOne(a => a.Username!.Equals(username));
@@ -188,6 +214,9 @@ namespace Rampage.Management.BLL
             return null;
         }
 
+        /// <summary>根据手机号获取管理员（含所属组，密码已清空） / Get the administrator by mobile number (with groups, password cleared)</summary>
+        /// <param name="mobile">手机号 / Mobile number</param>
+        /// <returns>管理员DTO；不存在时为 null / The admin DTO; null if not found</returns>
         public AdminDto? GetAdminByMobile(string mobile)
         {
             Admin? admin = SelectOne(a => a.Mobile!.Equals(mobile));
@@ -200,6 +229,9 @@ namespace Rampage.Management.BLL
             return null;
         }
 
+        /// <summary>根据邮箱地址获取管理员（含所属组，密码已清空） / Get the administrator by email address (with groups, password cleared)</summary>
+        /// <param name="email">邮箱地址 / Email address</param>
+        /// <returns>管理员DTO；不存在时为 null / The admin DTO; null if not found</returns>
         public AdminDto? GetAdminByEmail(string email)
         {
             Admin? admin = SelectOne(a => a.Email!.Equals(email));
@@ -212,6 +244,8 @@ namespace Rampage.Management.BLL
             return null;
         }
 
+        /// <summary>获取所有管理员列表（含所属组，密码已清空） / Get the list of all administrators (with groups, passwords cleared)</summary>
+        /// <returns>全部管理员列表 / The list of all administrators</returns>
         public List<AdminDto> GetAllAdminList()
         {
             List<AdminDto> list = SelectList<AdminDto>(new LambdaWrapper<Admin>());
@@ -219,6 +253,9 @@ namespace Rampage.Management.BLL
             return list;
         }
 
+        /// <summary>根据ID集合获取管理员列表（含所属组，密码已清空） / Get the administrator list by ID collection (with groups, passwords cleared)</summary>
+        /// <param name="adminIds">管理员ID集合 / Administrator ID collection</param>
+        /// <returns>指定ID集合的管理员列表 / The administrators with the specified IDs</returns>
         public List<AdminDto> GetAdminList(IList<int> adminIds)
         {
             List<AdminDto> list = SelectList<AdminDto>(a => adminIds.Contains(a.Id));
@@ -226,6 +263,9 @@ namespace Rampage.Management.BLL
             return list;
         }
 
+        /// <summary>获取分页的管理员列表（含所属组，密码已清空） / Get the paginated administrator list (with groups, passwords cleared)</summary>
+        /// <param name="pagerInfo">分页信息 / Paging information</param>
+        /// <returns>分页的管理员列表 / The paginated administrator list</returns>
         public List<AdminDto> GetAdminPageList(PagerInfo pagerInfo)
         {
             List<AdminDto> list = SelectPage<AdminDto>(pagerInfo, new LambdaWrapper<Admin>());
@@ -233,6 +273,10 @@ namespace Rampage.Management.BLL
             return list;
         }
 
+        /// <summary>根据筛选器获取分页的管理员列表（含所属组，密码已清空） / Get the paginated administrator list by filter (with groups, passwords cleared)</summary>
+        /// <param name="filter">筛选器 / The filter</param>
+        /// <param name="pagerInfo">分页信息 / Paging information</param>
+        /// <returns>按筛选器过滤的分页管理员列表 / The paginated administrator list filtered by the filter</returns>
         public List<AdminDto> GetAdminPageListByFilter(AdminFilter filter, PagerInfo pagerInfo)
         {
             List<AdminDto> list = SelectPage<AdminDto>(pagerInfo, filter);
@@ -240,6 +284,9 @@ namespace Rampage.Management.BLL
             return list;
         }
 
+        /// <summary>从缓存根据ID获取管理员（缓存时长在 3600~5400 秒间随机，避免集中过期） / Get the administrator by ID from cache (cache duration randomized between 3600 and 5400 seconds to avoid synchronized expiry)</summary>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
+        /// <returns>带缓存的管理员DTO；不存在时为 null / The cached admin DTO; null if not found</returns>
         public AdminDto? GetAdminByIdFromCache(int adminId)
         {
             return HandleWebCache<AdminDto?>(() =>
@@ -248,6 +295,14 @@ namespace Rampage.Management.BLL
             }, AdminDto.CACHE_KEY_ADMIN_BYID_TPL, MathTool.GenerateInt(3600, 5400), adminId);
         }
 
+        /// <summary>获取当前登录的管理员 / Get the currently logged-in administrator</summary>
+        /// <remarks>
+        /// 流程：请求上下文缓存命中直接返回→读取客户端令牌→校验 JWT；过期时用刷新令牌换新并立即回写客户端；无刷新令牌返回 InvalidToken。
+        /// 随后按 NameId 取管理员缓存，并校验令牌 Nonce 与密码派生的安全戳（密码修改后旧令牌全部失效），校验失败返回 InvalidToken。
+        /// Flow: context cache hit returns directly -> read the client token -> validate the JWT; when expired, refresh it with the refresh token and write the new one back to the client immediately; without a refresh token InvalidToken is returned.
+        /// Then the admin cache is loaded by NameId and the token Nonce is checked against the password-derived security stamp (all old tokens become invalid after a password change); a failed check returns InvalidToken.
+        /// </remarks>
+        /// <returns>成功时 Data 为当前管理员；未登录或令牌无效/过期时返回相应失败码 / On success Data holds the current admin; otherwise the corresponding failure code when not logged in or the token is invalid/expired</returns>
         public R<AdminDto> GetLoginAdmin()
         {
             AdminDto? loginAdmin = null;
@@ -320,6 +375,9 @@ namespace Rampage.Management.BLL
         }
 
 
+        /// <summary>使用 PBKDF2 加密管理员密码 / Encrypt an administrator password with PBKDF2</summary>
+        /// <param name="password">明文密码 / The plaintext password</param>
+        /// <returns>加密后的密码哈希 / The encrypted password hash</returns>
         public string EncryptAdminPassword(string password)
         {
             string encryptPassword = SecurityTool.PBKDF2Hash(password);
@@ -328,6 +386,7 @@ namespace Rampage.Management.BLL
 
         /// <summary>
         /// 登录失败计数器：优先使用 DI 中注册的 ILoginAttemptTracker（集群可注册分布式实现），否则使用进程内默认实例
+        /// Login failure tracker: prefers the ILoginAttemptTracker registered in DI (clusters may register a distributed implementation), otherwise the in-process default
         /// </summary>
         protected virtual ILoginAttemptTracker LoginAttemptTracker
         {
@@ -339,7 +398,11 @@ namespace Rampage.Management.BLL
 
         /// <summary>
         /// 由密码哈希派生的安全戳（不可逆、不泄露哈希本身），写入 JWT 的 Nonce；密码修改后旧令牌失效
+        /// A security stamp derived from the password hash (irreversible, does not leak the hash itself), written into the JWT Nonce; old tokens become invalid once the password changes
         /// </summary>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
+        /// <param name="passwordHash">密码哈希 / The password hash</param>
+        /// <returns>32 位安全戳 / The 32-character security stamp</returns>
         public static string ComputeSecurityStamp(int adminId, string? passwordHash)
         {
             string material = string.Concat(adminId, "|", passwordHash ?? string.Empty, "|", ManagementConfig.AdminPasswordEncryptKey);
@@ -348,7 +411,10 @@ namespace Rampage.Management.BLL
 
         /// <summary>
         /// 当前数据库中的安全戳（短缓存，密码更新时通过 RemoveAdminByIdCache 失效）
+        /// The current security stamp from the database (short-lived cache, invalidated by RemoveAdminByIdCache when the password changes)
         /// </summary>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
+        /// <returns>当前安全戳；管理员不存在时为 null / The current stamp; null if the admin does not exist</returns>
         protected string? GetCurrentSecurityStamp(int adminId)
         {
             return HandleWebCache<string?>(() =>
@@ -360,7 +426,11 @@ namespace Rampage.Management.BLL
 
         /// <summary>
         /// 校验令牌中的 Nonce 与当前安全戳一致。缺失 Nonce 的旧令牌一律视为无效（要求重新登录）。
+        /// Checks that the token Nonce matches the current security stamp. Legacy tokens without a Nonce are always treated as invalid (re-login required).
         /// </summary>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
+        /// <param name="nonce">令牌中的 Nonce / The Nonce from the token</param>
+        /// <returns>一致返回 true / true when they match</returns>
         public bool IsSecurityStampValid(int adminId, string? nonce)
         {
             if (string.IsNullOrEmpty(nonce))
@@ -371,6 +441,23 @@ namespace Rampage.Management.BLL
             return current != null && string.Equals(current, nonce, StringComparison.Ordinal);
         }
 
+        /// <summary>
+        /// 管理员登录
+        /// Administrator login
+        /// </summary>
+        /// <remarks>
+        /// 先经过暴力破解防护（ILoginAttemptTracker，按账号+IP 计数），被封锁时直接返回 ManyIncorrectPassword。
+        /// 账号按邮箱/手机号/用户名自动识别；账号不存在也计入失败，避免通过响应差异枚举账号。成功后写入登录日志并签发 JWT（Nonce 为密码安全戳）。
+        /// Brute-force protection (ILoginAttemptTracker, counting by account + IP) runs first and returns ManyIncorrectPassword while blocked.
+        /// The account is auto-detected as email / mobile / username; a missing account also counts as a failure to prevent account enumeration via response differences. On success a login log is written and a JWT is issued (Nonce is the password security stamp).
+        /// </remarks>
+        /// <param name="account">用户名/手机/邮箱 / Username / mobile number / email address</param>
+        /// <param name="password">密码（未加密） / Password (unencrypted)</param>
+        /// <param name="rememberDays">记住登录天数；null 表示会话级 Cookie / Days to remember the login; null for a session cookie</param>
+        /// <returns>
+        /// 成功时 Data 为登录管理员；10001:用户名或密码错误;10002:用户不存在;10003:用户被禁用;
+        /// On success Data holds the logged-in admin; 10001: Incorrect username or password; 10002: User does not exist; 10003: User is disabled;
+        /// </returns>
         public R<AdminDto> Login(string account, string password, double? rememberDays)
         {
             string? loginIP = WebTool.GetClientIP();
@@ -447,6 +534,8 @@ namespace Rampage.Management.BLL
             }
         }
 
+        /// <summary>管理员注销（清除客户端令牌） / Administrator log out (clears the client token)</summary>
+        /// <returns>成功或失败 / Success or failure</returns>
         public R Logout()
         {
             try
@@ -460,12 +549,26 @@ namespace Rampage.Management.BLL
             }
         }
 
+        /// <summary>移除指定管理员的缓存（实体缓存与安全戳缓存） / Remove the specified admin's caches (entity cache and security-stamp cache)</summary>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
         public void RemoveAdminByIdCache(int adminId)
         {
             MemoryCache.Remove(string.Format(AdminDto.CACHE_KEY_ADMIN_BYID_TPL, adminId));
             MemoryCache.Remove(string.Format(CACHE_KEY_ADMIN_STAMP_TPL, adminId));
         }
 
+        /// <summary>
+        /// 添加一个管理员
+        /// Add an administrator
+        /// </summary>
+        /// <remarks>密码加密后入库；用户名/邮箱/手机号唯一性校验失败分别返回 10001/10002/10003；成功后按需分配管理组并失效缓存。
+        /// The password is encrypted before insertion; username/email/mobile uniqueness failures return 10001/10002/10003 respectively; on success groups are assigned as needed and caches invalidated.</remarks>
+        /// <param name="admin">管理员数据 / The administrator data</param>
+        /// <param name="groupIds">分配至管理组 / Assigned to the management groups</param>
+        /// <returns>
+        /// 10001:用户名已经存在;10002:邮箱已经存在;10003:手机号已经存在;
+        /// 10001: The username already exists; 10002: The email already exists; 10003: The phone number already exists;
+        /// </returns>
         public R AddAdmin(AdminDto admin, IEnumerable<int>? groupIds)
         {
             if (admin.CreateTime <= DateTime.MinValue)
@@ -517,6 +620,17 @@ namespace Rampage.Management.BLL
             return result;
         }
 
+        /// <summary>
+        /// 更新一个管理员
+        /// Update an administrator
+        /// </summary>
+        /// <remarks>密码留空则保留原密码；ID 为 1 的创始人强制为启用状态且 IsMaster=true；用户名/邮箱/手机号与其他管理员冲突时返回 10001/10002/10003。
+        /// An empty password keeps the original; the founder with ID 1 is forced to enabled with IsMaster=true; conflicts with other admins return 10001/10002/10003.</remarks>
+        /// <param name="admin">管理员数据 / The administrator data</param>
+        /// <returns>
+        /// 10001:用户名已经存在;10002:邮箱已经存在;10003:手机号已经存在;
+        /// 10001: The username already exists; 10002: The email already exists; 10003: The phone number already exists;
+        /// </returns>
         public R UpdateAdmin(AdminDto admin)
         {
             admin.UpdateTime = UtcNow;
@@ -570,6 +684,16 @@ namespace Rampage.Management.BLL
             return result;
         }
 
+        /// <summary>
+        /// 更新一个管理员并重新分配管理组
+        /// Update an administrator and reassign its management groups
+        /// </summary>
+        /// <param name="admin">管理员数据 / The administrator data</param>
+        /// <param name="groupIds">分配至管理组 / Assigned to the management groups</param>
+        /// <returns>
+        /// 10001:用户名已经存在;10002:邮箱已经存在;10003:手机号已经存在;
+        /// 10001: The username already exists; 10002: The email already exists; 10003: The phone number already exists;
+        /// </returns>
         public R UpdateAdmin(AdminDto admin, IEnumerable<int>? groupIds)
         {
             R result = UpdateAdmin(admin);
@@ -584,6 +708,15 @@ namespace Rampage.Management.BLL
             return result;
         }
 
+        /// <summary>
+        /// 分配管理员至管理组
+        /// Assign an administrator to management groups
+        /// </summary>
+        /// <remarks>事务内差量更新：已存在且在目标集合中的置为启用，缺失的新增插入，不在目标集合中的置为禁用（软删除，不物理删除记录）。
+        /// Delta update inside a transaction: existing rows in the target set are enabled, missing ones inserted, rows outside the target set disabled (soft delete, no physical deletion).</remarks>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
+        /// <param name="manageGroupIds">管理组ID集合 / Management group IDs</param>
+        /// <returns>分配成功或失败（集合为空或管理员不存在返回失败） / Assignment success or failure (failure when the set is empty or the admin is missing)</returns>
         public R UpdateAdminInGroupListForAdmin(int adminId, IEnumerable<int> manageGroupIds)
         {
             if (manageGroupIds == null || false == manageGroupIds.Any())
@@ -657,6 +790,10 @@ namespace Rampage.Management.BLL
             return R.Success();
         }
 
+        /// <summary>修改管理员状态 / Change the administrator status</summary>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
+        /// <param name="status">新状态 / The new status</param>
+        /// <returns>修改成功或失败 / Update success or failure</returns>
         public R ChangeAdminStatus(int adminId, CommonStatus status)
         {
             bool result = AdminDao.UpdateById(adminId, c => c.Status, status);
@@ -668,6 +805,15 @@ namespace Rampage.Management.BLL
             return result ? R.Success() : R.Failure();
         }
 
+        /// <summary>
+        /// 更新管理员头像
+        /// Update the administrator avatar
+        /// </summary>
+        /// <remarks>头像以 PNG 存至 wwwroot/AdminFiles/avatars/{管理员ID}_{时间戳}.png，并删除旧头像文件；成功后失效管理员缓存。
+        /// The avatar is saved as PNG to wwwroot/AdminFiles/avatars/{adminId}_{timestamp}.png and the old file is deleted; the admin cache is invalidated on success.</remarks>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
+        /// <param name="avatarBuffer">头像图片字节 / The avatar image bytes</param>
+        /// <returns>成功时 Data 为新的头像地址 / On success Data contains the new avatar URL</returns>
         public R UpdateAdminAvatar(int adminId, byte[] avatarBuffer)
         {
             AdminDto? admin = GetAdminById(adminId);
@@ -706,6 +852,10 @@ namespace Rampage.Management.BLL
             return result;
         }
 
+        /// <summary>校验管理员密码是否正确 / Check whether the administrator's password is correct</summary>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
+        /// <param name="password">待校验的明文密码 / The plaintext password to verify</param>
+        /// <returns>密码正确返回 true；管理员不存在返回 false / true if the password matches; false if the admin does not exist</returns>
         public bool CheckAdminPassword(int adminId, string password)
         {
             Admin? entity = SelectById(adminId);
@@ -716,6 +866,15 @@ namespace Rampage.Management.BLL
             return SecurityTool.PBKDF2Verify(password, entity.Password);
         }
 
+        /// <summary>
+        /// 修改管理员密码
+        /// Update the administrator password
+        /// </summary>
+        /// <remarks>密码修改后安全戳变化，该管理员所有旧令牌（含刷新令牌）立即失效，需重新登录。
+        /// After a password change the security stamp changes, so all of the admin's old tokens (including refresh tokens) become invalid immediately and re-login is required.</remarks>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
+        /// <param name="newPassword">新密码（明文，内部加密后保存） / The new password (plaintext, encrypted before saving)</param>
+        /// <returns>修改成功或失败 / Update success or failure</returns>
         public R UpdateAdminPassword(int adminId, string newPassword)
         {
             AdminDto? admin = GetAdminById(adminId);
@@ -734,6 +893,13 @@ namespace Rampage.Management.BLL
             return result;
         }
 
+        /// <summary>
+        /// 删除管理员
+        /// Delete the administrator
+        /// </summary>
+        /// <remarks>事务内同时删除该管理员的组关联记录 / The admin's group memberships are deleted in the same transaction</remarks>
+        /// <param name="adminId">管理员ID / Administrator ID</param>
+        /// <returns>成功时 Data 为管理员ID；失败时返回失败结果 / On success Data contains the admin ID; otherwise a failure result</returns>
         public R DeleteAdminById(int adminId)
         {
             R result;
@@ -758,6 +924,14 @@ namespace Rampage.Management.BLL
 
 
 
+        /// <summary>
+        /// 添加管理员登录日志
+        /// Add an administrator login log
+        /// </summary>
+        /// <remarks>同时更新管理员表的最后登录时间/IP；管理员不存在直接返回 0；异常仅记录日志不抛出。
+        /// Also updates the admin's last login time/IP; returns 0 when the admin does not exist; exceptions are logged, not thrown.</remarks>
+        /// <param name="log">登录日志数据 / The login log data</param>
+        /// <returns>成功时返回日志ID，否则为 0 / The log ID on success, otherwise 0</returns>
         public long AddAdminLoginLog(AdminLoginLog log)
         {
             long result = 0;

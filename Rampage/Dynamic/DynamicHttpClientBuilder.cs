@@ -6,18 +6,24 @@ using Rampage.Net;
 namespace Rampage.Dynamic
 {
     /// <summary>
-    /// using "Reflection.Emit", build Custom Http Client Implemention dynamic code 
+    /// 使用 Reflection.Emit 为声明式 Http 客户端接口动态生成实现代码 / Build declarative HTTP client implementations at runtime using Reflection.Emit
     /// </summary>
     public class DynamicHttpClientBuilder
     {
 
+        /// <summary>
+        /// 动态 Http 客户端所在的模块名 / The module name hosting the generated HTTP clients
+        /// </summary>
         public static readonly string ModuleName = "DynamicHttpClients";
 
         /// <summary>
-        /// 
+        /// 为声明式 Http 客户端接口生成动态实现类（基类为 SuperHttpClient）
+        /// Build a dynamic implementation for a declarative HTTP client interface (base class SuperHttpClient)
         /// </summary>
-        /// <param name="interfaceType"></param>
-        /// <returns></returns>
+        /// <param name="interfaceType">客户端接口类型，其方法必须返回 Task&lt;T&gt; / The client interface; its methods must return Task&lt;T&gt;</param>
+        /// <returns>生成的实现类型 / The generated implementation type</returns>
+        /// <exception cref="ArgumentException">interfaceType 不是接口 / interfaceType is not an interface</exception>
+        /// <remarks>同名实现已存在时直接返回缓存 / A cached implementation of the same name is returned directly</remarks>
         public static Type? CreateImplementation(Type interfaceType)
         {
             if (!interfaceType.IsInterface)
@@ -47,6 +53,10 @@ namespace Rampage.Dynamic
             return finalType;
         }
 
+        /// <summary>
+        /// 生成接口方法体：把方法参数装箱打包为 Dictionary&lt;string, object?&gt;，再调用 SuperHttpClient.CallAsync&lt;T&gt;(接口类型, 方法名, 参数字典)
+        /// Emit the method body: packs parameters into a Dictionary&lt;string, object?&gt; (boxing value types), then calls SuperHttpClient.CallAsync&lt;T&gt;(interfaceType, methodName, arguments)
+        /// </summary>
         private static void GenerateMethodImplementation(TypeBuilder typeBuilder, Type interfaceType, MethodInfo method)
         {
             ParameterInfo[] parameters = method.GetParameters();
@@ -87,7 +97,7 @@ namespace Rampage.Dynamic
 
             if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
             {
-                // 接口方法签名 Task<T>：调用 CallAsync<T>，返回的 Task<T> 直接作为方法返回值
+                // 接口方法签名 Task<T>：调用 CallAsync<T>，返回的 Task<T> 直接作为方法返回值 / Task<T> signature: call CallAsync<T> whose Task<T> becomes the return value directly
                 Type taskArgumentType = returnType.GetGenericArguments()[0];
                 il.Emit(OpCodes.Call, typeof(SuperHttpClient).GetMethod("CallAsync")!.MakeGenericMethod(taskArgumentType)!);
             }
@@ -100,6 +110,9 @@ namespace Rampage.Dynamic
             il.Emit(OpCodes.Ret);
         }
 
+        /// <summary>
+        /// 提取参数类型数组 / Extract the parameter type array
+        /// </summary>
         private static Type[] GetParameterTypes(ParameterInfo[] parameters)
         {
             Type[] paramTypes = new Type[parameters.Length];

@@ -5,9 +5,9 @@ using System.Globalization;
 namespace Rampage.Scheduling
 {
     /// <summary>
-    /// 简化版 Cron 表达式（标准5字段：分 时 日 月 周）。
-    /// 支持语法：* 、数字、区间 a-b、步进 /s（如 */5、10-30/2）、逗号组合；
-    /// 周字段 0 与 7 均表示周日。日与周同时受限时按任一命中（OR）处理。
+    /// 简化版 Cron 表达式（标准5字段：分 时 日 月 周）。 / Simplified cron expression (standard 5 fields: minute hour day-of-month month day-of-week).
+    /// 支持语法：* 、数字、区间 a-b、步进 /s（如 */5、10-30/2）、逗号组合； / Supported syntax: *, plain numbers, ranges a-b, steps /s (e.g. */5, 10-30/2), and comma-separated combinations;
+    /// 周字段 0 与 7 均表示周日。日与周同时受限时按任一命中（OR）处理。 / In the weekday field both 0 and 7 mean Sunday; when day-of-month and weekday are both restricted, a hit on either counts (OR).
     /// </summary>
     public sealed class CronExpression
     {
@@ -31,10 +31,10 @@ namespace Rampage.Scheduling
         }
 
         /// <summary>
-        /// 解析 Cron 表达式
+        /// 解析 Cron 表达式 / Parses a cron expression
         /// </summary>
-        /// <param name="expression">如 "0 3 * * *"（每天 3:00）、"*/30 * * * *"（每半小时）</param>
-        /// <returns></returns>
+        /// <param name="expression">如 "0 3 * * *"（每天 3:00）、"*/30 * * * *"（每半小时） / e.g. "0 3 * * *" (daily at 3:00), "*/30 * * * *" (every half hour)</param>
+        /// <returns>解析得到的 CronExpression 实例 / The parsed CronExpression instance</returns>
         public static CronExpression Parse(string expression)
         {
             if (string.IsNullOrWhiteSpace(expression))
@@ -55,10 +55,10 @@ namespace Rampage.Scheduling
         }
 
         /// <summary>
-        /// 指定时间（分钟粒度）是否命中
+        /// 指定时间（分钟粒度）是否命中 / Whether the given time (minute granularity) matches the expression
         /// </summary>
-        /// <param name="time"></param>
-        /// <returns></returns>
+        /// <param name="time">待检查的时间（忽略秒及以下部分） / The time to check (seconds and below are ignored)</param>
+        /// <returns>命中返回 true / true if it matches</returns>
         public bool Matches(DateTime time)
         {
             if (Array.BinarySearch(_minutes, time.Minute) < 0)
@@ -91,10 +91,10 @@ namespace Rampage.Scheduling
         }
 
         /// <summary>
-        /// 计算指定时间之后的下一次命中时间（分钟粒度；最多向前扫描一年）
+        /// 计算指定时间之后的下一次命中时间（分钟粒度；最多向前扫描一年） / Computes the next match strictly after the given time (minute granularity; scans forward at most one year)
         /// </summary>
-        /// <param name="after"></param>
-        /// <returns></returns>
+        /// <param name="after">起始时间（不含该分钟本身） / The reference time (its own minute is excluded)</param>
+        /// <returns>下一次命中时间；一年内无可命中时间则抛出 InvalidOperationException / The next occurrence; throws InvalidOperationException if nothing matches within a year</returns>
         public DateTime NextOccurrence(DateTime after)
         {
             DateTime candidate = new DateTime(after.Year, after.Month, after.Day, after.Hour, after.Minute, 0).AddMinutes(1);
@@ -172,7 +172,7 @@ namespace Rampage.Scheduling
 
         private static int[] NormalizeWeek(int[] values)
         {
-            // 0 与 7 均归一化为周日（0）
+            // 0 与 7 均归一化为周日（0） / Both 0 and 7 are normalized to Sunday (0)
             if (Array.IndexOf(values, 7) < 0)
             {
                 return values;

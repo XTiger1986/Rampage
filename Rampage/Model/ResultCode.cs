@@ -5,136 +5,114 @@ namespace Rampage.Model
 {
 
     /// <summary>
-    /// Common Operation Result Code
-    /// 0: Success
+    /// 通用操作结果码（0=成功，4xxx=登录授权类，5xxx=请求与数据类） / Common operation result codes (0 success, 4xxx authentication, 5xxx request/data errors)
     /// </summary>
     public enum ResultCode : int
     {
         /// <summary>
-        /// Successful
-        /// 成功
+        /// 成功 / Successful
         /// </summary>
         [EnumFieldAttribute("Successful")]
         Success = 0,
         /// <summary>
-        /// Failed
-        /// 失败
+        /// 失败 / Failed
         /// </summary>
         [EnumFieldAttribute("Failed")]
         Failure = 1000,
 
         /// <summary>
-        /// Not logged in
-        /// 未登录
+        /// 未登录 / Not logged in
         /// </summary>
         [EnumFieldAttribute("Not logged in")]
         NotLoggedIn = 4000,
         /// <summary>
-        /// Unauthorized
-        /// 未授权
+        /// 未授权 / Unauthorized
         /// </summary>
         [EnumFieldAttribute("Unauthorized")]
         Unauthorized = 4001,
         /// <summary>
-        /// Incorrect Password
-        /// 密码不正确
+        /// 密码不正确 / Incorrect password
         /// </summary>
         [EnumFieldAttribute("Incorrect Password")]
         IncorrectPassword = 4002,
         /// <summary>
-        /// Incorrect Password for many times
-        /// 多次密码不正确
+        /// 多次密码不正确 / Incorrect password entered too many times
         /// </summary>
         [EnumFieldAttribute("Incorrect Password")]
         ManyIncorrectPassword = 4003,
         /// <summary>
-        /// Account does not exist
-        /// 账号不存在
+        /// 账号不存在 / Account does not exist
         /// </summary>
         [EnumFieldAttribute("Account does not exist")]
         InvalidAccount = 4004,
         /// <summary>
-        /// Account disabled
-        /// 账号被禁用
+        /// 账号被禁用 / Account disabled
         /// </summary>
         [EnumFieldAttribute("Account disabled")]
         DisabledAccount = 4005,
         /// <summary>
-        /// Token is expired
-        /// 凭据过期
+        /// 凭据过期 / Token expired
         /// </summary>
         [EnumFieldAttribute("Token is expired")]
         TokenExpired = 4006,
         /// <summary>
-        /// 凭据无效
-        /// Invalid token
+        /// 凭据无效 / Invalid token
         /// </summary>
         [EnumFieldAttribute("Invalid token")]
         InvalidToken = 4007,
         /// <summary>
-        /// 凭据需要刷新
-        /// Token need refresh
+        /// 凭据需要刷新 / Token needs refresh
         /// </summary>
         [EnumFieldAttribute("Token need refresh")]
         RefreshToken = 4008,
 
         /// <summary>
-        /// Illegal Request
-        /// 非法请求
+        /// 非法请求 / Illegal request
         /// </summary>
         [EnumFieldAttribute("Illegal Request")]
         IllegalRequest = 5000,
         /// <summary>
-        /// Illegal Arguments
-        /// 参数非法
+        /// 参数非法 / Illegal arguments
         /// </summary>
         [EnumFieldAttribute("Illegal Arguments")]
 		IllegalArguments = 5001,
         /// <summary>
-        /// Operation too Frequent
-        /// 操作太频繁
+        /// 操作太频繁 / Operation too frequent
         /// </summary>
         [EnumFieldAttribute("Operation too Frequent")]
         OperationTooFrequent = 5002,
         /// <summary>
-        /// Only allow make changes once a day
-        /// 一天只能修改一次
+        /// 一天只能修改一次 / Only one change allowed per day
         /// </summary>
         [EnumFieldAttribute("Only allow make changes once a day")]
         OneDayOneChangeTime = 5003,
         /// <summary>
-        /// fail to verify data
-        /// 数据验证失败
+        /// 数据验证失败 / Data verification failed
         /// </summary>
         [EnumFieldAttribute("Fail to Verify Data")]
         DataVerificationFailed = 5100,
         /// <summary>
-        /// data not exists
-        /// 数据不存在
+        /// 数据不存在 / Data does not exist
         /// </summary>
         [EnumFieldAttribute("Data Not Exists")]
         DataNotExists = 5101,
         /// <summary>
-        /// data exists
-        /// 数据已经存在
+        /// 数据已经存在 / Data already exists
         /// </summary>
         [EnumFieldAttribute("Data Exists")]
         DataExists = 5102,
         /// <summary>
-        /// exists associated data
-        /// 存在关联数据
+        /// 存在关联数据 / Associated data exists
         /// </summary>
         [EnumFieldAttribute("Exists Associated Data")]
         ExistsAssociatedData = 5103,
         /// <summary>
-        /// Incorrect Verification Code
-        /// 验证码错误
+        /// 验证码错误 / Incorrect verification code
         /// </summary>
         [EnumFieldAttribute("Incorrect Verification Code")]
         IncorrectVerificationCode = 5201,
         /// <summary>
-        /// Verification Code Expired
-        /// 验证码已经过期或失效
+        /// 验证码已经过期或失效 / Verification code expired
         /// </summary>
         [EnumFieldAttribute("Verification Code Expired")]
         VerificationCodeExpired = 5202,

@@ -7,31 +7,44 @@ using System.Text.RegularExpressions;
 namespace Rampage.Utilities
 {
 
+    /// <summary>
+    /// 文件大小单位（枚举值为量级序号而非字节数；相邻单位按 1024 进制换算） /
+    /// File size units (the enum value is an ordinal rank, not a byte count; adjacent units convert by a factor of 1024)
+    /// </summary>
     public enum FileSizeUnit : byte
     {
+        /// <summary>字节 / Bytes</summary>
         B = 1,
+        /// <summary>千字节（1024 B） / Kilobytes (1024 B)</summary>
         K = 2,
+        /// <summary>兆字节（1024 K） / Megabytes (1024 K)</summary>
         M = 3,
+        /// <summary>吉字节（1024 M） / Gigabytes (1024 M)</summary>
         G = 4,
+        /// <summary>太字节（1024 G） / Terabytes (1024 G)</summary>
         T = 5,
+        /// <summary>拍字节（1024 T） / Petabytes (1024 T)</summary>
         P = 6,
+        /// <summary>艾字节（1024 P） / Exabytes (1024 P)</summary>
         E = 7,
+        /// <summary>泽字节（1024 E） / Zettabytes (1024 E)</summary>
         Z = 8,
+        /// <summary>尧字节（1024 Z） / Yottabytes (1024 Z)</summary>
         Y = 9
     }
 
     /// <summary>
-    /// 
+    /// 文件工具（MD5 计算、读写、GZip 压缩、文件大小换算） /
+    /// File utilities (MD5 computation, read/write, GZip compression, file size conversion)
     /// </summary>
     public class FileTool
     {
 
         /// <summary>
-        /// 尝试删除指定路径文件(如果存在的话)
-        /// try delete file if exists
+        /// 尝试删除指定路径的文件（存在则删除）/ Try to delete the file at the given path if it exists
         /// </summary>
-        /// <param name="path"></param>
-        /// <returns>if not exists, return false</returns>
+        /// <param name="path">文件路径 / The file path</param>
+        /// <returns>文件存在并已删除返回 true，不存在返回 false / true when the file existed and was deleted, false when it did not exist</returns>
         public static bool TryDeleteFile(string path)
         {
             if (File.Exists(path))
@@ -43,10 +56,11 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        /// get file md5 from file bytes
+        /// 计算字节数组的 MD5（32 位大写十六进制） /
+        /// Compute the MD5 of a byte array (32-character uppercase hex)
         /// </summary>
-        /// <param name="fileBytes"></param>
-        /// <returns></returns>
+        /// <param name="fileBytes">文件内容字节 / The file content bytes</param>
+        /// <returns>32 位大写十六进制 MD5 / The uppercase hex MD5</returns>
         public static string ComputeFileMD5Code(byte[] fileBytes)
         {
             string md5Code;
@@ -60,10 +74,11 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        /// get file md5 from file path
+        /// 计算文件的 MD5（32 位大写十六进制） /
+        /// Compute a file's MD5 (32-character uppercase hex)
         /// </summary>
-        /// <param name="filePath"></param>
-        /// <returns></returns>
+        /// <param name="filePath">文件路径 / The file path</param>
+        /// <returns>32 位大写十六进制 MD5 / The uppercase hex MD5</returns>
         public static string ComputeFileMD5Code(string filePath)
         {
             string md5Code;
@@ -77,10 +92,11 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        ///  get file md5 from file stream
+        /// 计算流的 MD5（32 位大写十六进制），计算完成后将流位置重置回 0 /
+        /// Compute a stream's MD5 (32-character uppercase hex); the stream position is reset to 0 afterwards
         /// </summary>
-        /// <param name="stream"></param>
-        /// <returns></returns>
+        /// <param name="stream">输入流 / The input stream</param>
+        /// <returns>32 位大写十六进制 MD5 / The uppercase hex MD5</returns>
         public static string ComputeFileMD5Code(Stream stream)
         {
             MD5 md5Provider = MD5.Create();
@@ -94,10 +110,11 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        /// read bytes from file path
+        /// 读取整个文件为字节数组（按 8KB 批次循环读取） /
+        /// Read a whole file into a byte array (looped in 8KB batches)
         /// </summary>
-        /// <param name="path"></param>
-        /// <returns></returns>
+        /// <param name="path">文件路径 / The file path</param>
+        /// <returns>文件内容字节 / The file content bytes</returns>
         public static byte[] ReadFileBytes(string path)
         {
             byte[] buffer;
@@ -119,12 +136,13 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        /// 
+        /// 将字节数组写入文件 /
+        /// Write a byte array to a file
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="fileBytes"></param>
-        /// <param name="isOverwrite"></param>
-        /// <returns></returns>
+        /// <param name="path">目标文件路径 / The target file path</param>
+        /// <param name="fileBytes">写入的字节 / The bytes to write</param>
+        /// <param name="isOverwrite">文件已存在时是否覆盖，默认 true / Whether to overwrite an existing file, true by default</param>
+        /// <returns>写入成功返回 true；文件已存在且不允许覆盖返回 false / true when written; false when the file exists and overwrite is disallowed</returns>
         public static bool WriteFile(string path, byte[] fileBytes, bool isOverwrite = true)
         {
             if (File.Exists(path) && !isOverwrite)
@@ -143,21 +161,23 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        /// read file string from file path (use UTF8)
+        /// 读取文件全文（UTF-8 编码） /
+        /// Read a whole file as a string (UTF-8)
         /// </summary>
-        /// <param name="path"></param>
-        /// <returns></returns>
+        /// <param name="path">文件路径 / The file path</param>
+        /// <returns>文件内容；文件或其目录不存在返回空串 / The file content, or an empty string when the file or its directory does not exist</returns>
         public static string ReadFile(string path)
         {
             return ReadFile(path, Encoding.UTF8);
         }
 
         /// <summary>
-        /// read file string from file path
+        /// 读取文件全文（指定编码） /
+        /// Read a whole file as a string with the given encoding
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="encoding"></param>
-        /// <returns></returns>
+        /// <param name="path">文件路径 / The file path</param>
+        /// <param name="encoding">文本编码 / The text encoding</param>
+        /// <returns>文件内容；文件或其目录不存在返回空串 / The file content, or an empty string when the file or its directory does not exist</returns>
         public static string ReadFile(string path, Encoding encoding)
         {
             string content;
@@ -181,41 +201,46 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        /// write string content to file (use UTF8)
+        /// 将字符串写入文件（UTF-8 编码，覆盖写入） /
+        /// Write a string to a file (UTF-8, overwrite)
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="content"></param>
+        /// <param name="path">目标文件路径 / The target file path</param>
+        /// <param name="content">写入内容 / The content to write</param>
         public static void WriteFile(string path, string content)
         {
             WriteFile(path, content, Encoding.UTF8, false);
         }
         /// <summary>
-        /// write string content to file (use UTF8)
+        /// 将字符串写入文件（UTF-8 编码） /
+        /// Write a string to a file (UTF-8)
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="content"></param>
-        /// <param name="append">is append to file, otherwise replaced</param>
+        /// <param name="path">目标文件路径 / The target file path</param>
+        /// <param name="content">写入内容 / The content to write</param>
+        /// <param name="append">true 追加到文件末尾，false 覆盖原内容 / true to append, false to replace</param>
         public static void WriteFile(string path, string content, bool append)
         {
             WriteFile(path, content, Encoding.UTF8, append);
         }
         /// <summary>
-        /// write string content to file
+        /// 将字符串写入文件（指定编码，覆盖写入） /
+        /// Write a string to a file with the given encoding (overwrite)
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="content"></param>
-        /// <param name="encoding"></param>
+        /// <param name="path">目标文件路径 / The target file path</param>
+        /// <param name="content">写入内容 / The content to write</param>
+        /// <param name="encoding">文本编码 / The text encoding</param>
         public static void WriteFile(string path, string content, Encoding encoding)
         {
             WriteFile(path, content, encoding, false);
         }
         /// <summary>
-        /// write string content to file
+        /// 将字符串写入文件（指定编码） /
+        /// Write a string to a file with the given encoding
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="content"></param>
-        /// <param name="encoding"></param>
-        /// <param name="append"></param>
+        /// <remarks>目标目录不存在时自动创建。The target directory is created when missing.</remarks>
+        /// <param name="path">目标文件路径 / The target file path</param>
+        /// <param name="content">写入内容 / The content to write</param>
+        /// <param name="encoding">文本编码 / The text encoding</param>
+        /// <param name="append">true 追加到文件末尾，false 覆盖原内容 / true to append, false to replace</param>
         public static void WriteFile(string path, string content, Encoding encoding, bool append)
         {
             string dirPath = Path.GetDirectoryName(path)!;
@@ -230,11 +255,13 @@ namespace Rampage.Utilities
 
 
         /// <summary>
-        /// get byte value from file size info
+        /// 将数值大小按单位换算为字节数（1024 进制） /
+        /// Convert a size value with its unit into a byte length (base 1024)
         /// </summary>
-        /// <param name="sizeNum">size value</param>
-        /// <param name="unit"></param>
-        /// <returns></returns>
+        /// <remarks>结果经 Convert.ToInt64 取整（中间值向偶数舍入）。The result is truncated to long via Convert.ToInt64 (midpoints round to even).</remarks>
+        /// <param name="sizeNum">数值大小 / The size value</param>
+        /// <param name="unit">单位 / The unit</param>
+        /// <returns>字节数 / The byte length</returns>
         public static long GetByteLength(decimal sizeNum, FileSizeUnit unit)
         {
             long byteLen = 0;
@@ -276,11 +303,13 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        /// get byte value from file size info
+        /// 将数值大小按单位字符串换算为字节数（1024 进制） /
+        /// Convert a size value with its unit string into a byte length (base 1024)
         /// </summary>
-        /// <param name="sizeNum">size value</param>
-        /// <param name="unit">unit：T|TB、G|GB、M|MB、K|KB、B|BS|BYTE|BYTES...</param>
-        /// <returns></returns>
+        /// <remarks>单位大小写不敏感；未识别的单位（含 default 分支）按字节 B 处理。Unit matching is case-insensitive; unrecognized units (including the default branch) fall back to bytes (B).</remarks>
+        /// <param name="sizeNum">数值大小 / The size value</param>
+        /// <param name="unit">单位：T|TB、G|GB、M|MB、K|KB、B|BS|BYTE|BYTES 等 / The unit: T|TB, G|GB, M|MB, K|KB, B|BS|BYTE|BYTES, etc.</param>
+        /// <returns>字节数 / The byte length</returns>
         public static long GetByteLength(decimal sizeNum, string unit)
         {
             FileSizeUnit eu = FileSizeUnit.B;
@@ -332,10 +361,12 @@ namespace Rampage.Utilities
 
         private static readonly Regex _sizeRegex = new Regex(@"^(?<Size>[0-9]+(\.[0-9]+)?)\s*(?<Unit>[a-zA-Z]+)$", RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.IgnorePatternWhitespace);
         /// <summary>
-        /// get byte value from file size info string
+        /// 解析"数值+单位"形式的文件大小串为字节数（如 "168KB"、"588MB"） /
+        /// Parse a "number + unit" size string into a byte length (e.g. "168KB", "588MB")
         /// </summary>
-        /// <param name="sizeInfo">for example：168KB、588MB</param>
-        /// <returns></returns>
+        /// <remarks>数字与单位间允许空白；不匹配正则时返回 0。Whitespace between the number and unit is allowed; returns 0 when the string does not match.</remarks>
+        /// <param name="sizeInfo">大小串 / The size string</param>
+        /// <returns>字节数，无法解析时为 0 / The byte length, or 0 when unparsable</returns>
         public static long GetByteLengthFromSizeString(string sizeInfo)
         {
             long byteLen = 0;
@@ -357,11 +388,12 @@ namespace Rampage.Utilities
 
 
         /// <summary>
-        /// read string from GZip bytes
+        /// 解压 GZip 字节并按指定编码读取为字符串 /
+        /// Decompress GZip bytes and read them as a string with the given encoding
         /// </summary>
-        /// <param name="bytes"></param>
-        /// <param name="encoding"></param>
-        /// <returns></returns>
+        /// <param name="bytes">GZip 压缩字节 / The GZip-compressed bytes</param>
+        /// <param name="encoding">文本编码 / The text encoding</param>
+        /// <returns>解压后的字符串 / The decompressed string</returns>
         public static string ReadGZip(byte[] bytes, Encoding encoding)
         {
             string result = string.Empty;
@@ -379,11 +411,12 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        /// get GZip bytes from string
+        /// 将字符串按指定编码压缩为 GZip 字节数组 /
+        /// Compress a string into GZip bytes with the given encoding
         /// </summary>
-        /// <param name="input"></param>
-        /// <param name="encoding"></param>
-        /// <returns></returns>
+        /// <param name="input">待压缩字符串 / The string to compress</param>
+        /// <param name="encoding">文本编码 / The text encoding</param>
+        /// <returns>GZip 压缩字节 / The GZip-compressed bytes</returns>
         public static byte[] WriteGZip(string input, Encoding encoding)
         {
             byte[] rawData = encoding.GetBytes(input);

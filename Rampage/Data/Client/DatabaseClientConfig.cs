@@ -6,6 +6,18 @@ namespace Rampage.Data.Client
     /// 数据库配置
     /// Database Client Configuration
     /// </summary>
+    /// <remarks>
+    /// 对应配置节 DatabaseFactory:Clients 数组中的一项，<see cref="Name"/> 是应用内多库路由使用的逻辑库名。
+    /// 客户端类型解析优先级（见 <see cref="DatabaseFactory.ReloadConfig"/>）：
+    /// 1) 指定 <see cref="TypeName"/>（完整类型名）时直接加载该类型；
+    /// 2) 否则按 <see cref="Type"/>（<see cref="DatabaseType"/> 枚举名）映射到 Rampage.DatabaseLibrary.* 各方言包的内置客户端；
+    /// 两者都解析失败时抛出依赖包缺失异常。
+    /// Each instance represents one entry of the DatabaseFactory:Clients array; <see cref="Name"/> is the
+    /// logical database name used for multi-database routing. Client type resolution priority
+    /// (see <see cref="DatabaseFactory.ReloadConfig"/>): (1) a <see cref="TypeName"/> full type name wins when present;
+    /// (2) otherwise <see cref="Type"/> (a <see cref="DatabaseType"/> enum name) maps to the built-in client in the
+    /// Rampage.DatabaseLibrary.* dialect package. A missing dependency exception is thrown when both fail.
+    /// </remarks>
     public class DatabaseClientConfig
     {
         /// <summary>

@@ -2,13 +2,17 @@
 
 namespace Rampage.Model
 {
+    /// <summary>
+    /// 分页列表数据包装 / Paged list data wrapper
+    /// </summary>
+    /// <typeparam name="M">列表项类型 / List item type</typeparam>
     public class PageListData<M>
     {
 
 
         private int _pageIndex = 1;
         /// <summary>
-        /// 第几页
+        /// 页码（从 1 开始，默认 1） / Page index, 1-based, default 1
         /// </summary>
         public int PageIndex
         {
@@ -18,7 +22,7 @@ namespace Rampage.Model
 
         private int _pageSize = 10;
         /// <summary>
-        /// 每页数量
+        /// 每页数量（默认 10） / Page size, default 10
         /// </summary>
         public int PageSize
         {
@@ -27,7 +31,7 @@ namespace Rampage.Model
         }
 
         /// <summary>
-        /// 总数量
+        /// 总记录数 / Total record count
         /// </summary>
         public long RecordCount
         {
@@ -36,6 +40,9 @@ namespace Rampage.Model
         }
 
 
+        /// <summary>
+        /// 当前页数据列表 / Data list of the current page
+        /// </summary>
         public List<M>? DataList { get; set; }
 
     }

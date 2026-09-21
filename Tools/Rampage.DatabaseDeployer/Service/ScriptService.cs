@@ -9,32 +9,35 @@ namespace Rampage.DatabaseDeployer.Service
 {
 
     /// <summary>
-    /// 
+    /// 脚本服务接口：负责扫描脚本目录、按文件名解析版本号并筛选待执行脚本 /
+    /// Script service interface: scans script directories, extracts versions from file names and filters scripts to run
     /// </summary>
     public interface IScriptService : IBaseService
     {
         /// <summary>
-        /// 获取部署的SQL脚本目录名称集
+        /// 获取部署的SQL脚本目录名称集 / Gets the names of deployable SQL script directories
         /// </summary>
-        /// <returns></returns>
+        /// <returns>脚本根目录下的一级目录名列表；根目录不存在时返回空列表 / Names of first-level directories under the script root; an empty list when the root does not exist</returns>
         List<string> GetSqlScriptDirectoryNames();
 
         /// <summary>
-        /// 获取指定目录从指定版本开始的SQL脚本列表
+        /// 获取指定目录从指定版本开始的SQL脚本列表 / Gets the SQL scripts of the given directory newer than the given version
         /// </summary>
-        /// <param name="directoryName"></param>
-        /// <param name="fromVersion"></param>
-        /// <returns></returns>
+        /// <param name="directoryName">脚本目录名 / Script directory name</param>
+        /// <param name="fromVersion">起始版本号（不含），仅收集版本号大于它的脚本 / Baseline version (exclusive); only scripts with a greater version are collected</param>
+        /// <returns>版本号大于 fromVersion 的脚本列表；目录无配置或不存在时返回空列表 / Scripts with version greater than fromVersion; an empty list when the setting or directory is missing</returns>
         List<SqlScript> GetSqlScriptListFromVersion(string directoryName, long fromVersion);
 
     }
 
     /// <summary>
-    /// 
+    /// 脚本服务实现：按 VersionPattern 正则从文件名提取版本号，筛选待执行的部署脚本 /
+    /// Script service implementation: extracts versions from file names via the VersionPattern regex and filters scripts to deploy
     /// </summary>
     public class ScriptService : BaseService, IScriptService
     {
 
+        /// <summary>部署服务（自动注入）/ Deploy service (auto-injected)</summary>
         [Auto]
         protected IDeployService DeployService = default!;
 
@@ -42,7 +45,8 @@ namespace Rampage.DatabaseDeployer.Service
         private readonly Regex _versionScript;
 
         /// <summary>
-        /// 
+        /// 初始化服务：读取 ScriptSetting 配置节，并按 VersionPattern 编译版本号正则（忽略大小写）/
+        /// Initializes the service: loads the ScriptSetting section and compiles the version regex (case-insensitive)
         /// </summary>
         public ScriptService() : base()
         {
@@ -51,10 +55,11 @@ namespace Rampage.DatabaseDeployer.Service
         }
 
         /// <summary>
-        /// 
+        /// 从脚本文件解析 SqlScript：用 VersionPattern 从文件名提取版本号并读取文件内容 /
+        /// Parses a SqlScript from a file: extracts the version via VersionPattern and reads the file content
         /// </summary>
-        /// <param name="scriptFile"></param>
-        /// <returns></returns>
+        /// <param name="scriptFile">脚本文件 / The script file</param>
+        /// <returns>解析结果；文件名不匹配 VersionPattern 时返回 null / The parsed script; null when the file name does not match VersionPattern</returns>
         private SqlScript? ReadFromFile(FileInfo scriptFile)
         {
             if (false == _versionScript.IsMatch(scriptFile.Name))
@@ -63,7 +68,7 @@ namespace Rampage.DatabaseDeployer.Service
             }
 
             Match versionMatch = _versionScript.Match(scriptFile.Name);
-            string strVersion = versionMatch.Groups["Version"].Value;
+            string strVersion = versionMatch.Groups["Version"].Value; // 取命名分组 Version / capture the named group "Version"
             long version = StringTool.TryParse<long>(strVersion);
             string sqlContent = FileTool.ReadFile(scriptFile.FullName);
 
@@ -78,9 +83,9 @@ namespace Rampage.DatabaseDeployer.Service
         }
 
         /// <summary>
-        /// 获取部署的SQL脚本目录名称集
+        /// 获取部署的SQL脚本目录名称集 / Gets the names of deployable SQL script directories
         /// </summary>
-        /// <returns></returns>
+        /// <returns>脚本根目录下的一级目录名列表；根目录不存在时返回空列表 / Names of first-level directories under the script root; an empty list when the root does not exist</returns>
         public List<string> GetSqlScriptDirectoryNames()
         {
             string root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _scriptSetting.Root!);
@@ -101,11 +106,19 @@ namespace Rampage.DatabaseDeployer.Service
         }
 
         /// <summary>
-        /// 获取指定目录从指定版本开始的SQL脚本列表
+        /// 获取指定目录从指定版本开始的SQL脚本列表 / Gets the SQL scripts of the given directory newer than the given version
         /// </summary>
-        /// <param name="directoryName"></param>
-        /// <param name="fromVersion"></param>
-        /// <returns></returns>
+        /// <param name="directoryName">脚本目录名 / Script directory name</param>
+        /// <param name="fromVersion">起始版本号（不含）/ Baseline version (exclusive)</param>
+        /// <returns>版本号大于 fromVersion 的脚本列表；目录无 deploy.json 或目录不存在时返回空列表 / Scripts newer than fromVersion; an empty list when deploy.json or the directory is missing</returns>
+        /// <remarks>
+        /// 脚本目录取 deploy.json 的 ScriptDirectoryPath（可指向任意路径），未配置时为“脚本根目录+目录名”。
+        /// 会同时扫描该目录本身与其一级子目录；所有脚本（含子目录中的）的 DirectoryName 均记为一级目录名。
+        /// 列表未显式按版本号排序，实际执行顺序取决于文件枚举顺序（文件名排序）。
+        /// The script directory comes from ScriptDirectoryPath in deploy.json (any path), falling back to "script root + directory name".
+        /// Both the directory itself and its first-level subdirectories are scanned; DirectoryName is always the first-level directory name.
+        /// The list is not explicitly sorted by version; execution order follows file enumeration order (file-name order).
+        /// </remarks>
         public List<SqlScript> GetSqlScriptListFromVersion(string directoryName, long fromVersion)
         {
             DeploySetting? deploySetting = DeployService.GetDeploySetting(directoryName);
@@ -137,6 +150,7 @@ namespace Rampage.DatabaseDeployer.Service
             {
                 SqlScript? sqlScript = ReadFromFile(scriptFile);
 
+                // 仅收集版本号大于当前版本的脚本 / keep only scripts newer than the current version
                 if (sqlScript != null && sqlScript.Version > fromVersion)
                 {
                     sqlScript.DirectoryName = directoryName;
@@ -150,6 +164,7 @@ namespace Rampage.DatabaseDeployer.Service
                 {
                     SqlScript? sqlScript = ReadFromFile(scriptFile);
 
+                    // 仅收集版本号大于当前版本的脚本 / keep only scripts newer than the current version
                     if (sqlScript != null && sqlScript.Version > fromVersion)
                     {
                         sqlScript.DirectoryName = directoryName;

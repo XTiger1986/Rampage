@@ -3,16 +3,24 @@
 namespace Rampage.Validation
 {
     /// <summary>
-    /// 
+    /// 不等于验证：值不得等于 Data 指定的基准值 / Not-equal validation: the value must differ from the reference value in Data
     /// </summary>
+    /// <remarks>
+    /// 按属性 TypeCode 分派比较方式（数值、日期按解析后比较，不等于时通过）；
+    /// The comparison is dispatched by the property's TypeCode (numeric / date values are parsed and compared; passes when not equal);
+    /// 注意：字符串分支当前实现为"与 Data 相等时返回 true（通过）"，与类名语义及其他分支相反，疑似缺陷；
+    /// Note: the string branch currently returns true (pass) when the value EQUALS Data — the opposite of the class's intent and of the other branches; likely a defect.
+    /// 值或 Data 为 null、类型不支持、解析失败时按 Required 决定通过与否。
+    /// When either side is null, the type is unsupported, or parsing fails, the outcome follows Required.
+    /// </remarks>
     public class NotEqualValidAttribute : ValidationAttributeBase
     {
 
         /// <summary>
-        /// 
+        /// 验证值是否满足不等于规则（按属性类型分派比较）/ Check the not-equal rule (comparison dispatched by property type)
         /// </summary>
-        /// <param name="v"></param>
-        /// <returns></returns>
+        /// <param name="v">被验证值 / The value to validate</param>
+        /// <returns>通过返回 true / true when the rule passes</returns>
         public override bool Validate(object? v)
         {
             if (v == null || Data == null) { return !Required; }
@@ -85,7 +93,7 @@ namespace Rampage.Validation
         }
 
         /// <summary>
-        /// 
+        /// 用于比较的基准值 / The reference value to compare against
         /// </summary>
         public object? Data
         {

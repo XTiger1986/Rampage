@@ -6,17 +6,20 @@ using System;
 
 namespace Rampage.DependencyInjection
 {
+    /// <summary>
+    /// IServiceScope 服务解析扩展：支持条件注册实现优先与服务名定位 / Service resolution extensions on IServiceScope with conditional-implementation preference and service-name lookup.
+    /// </summary>
     public static class DependencyInjectionExtensions
     {
 
 
         /// <summary>
-        /// 单次枚举按实现类型全名查找服务，避免 Any+First/FirstOrDefault 双重枚举把全部实现实例化两遍
+        /// 单次枚举按实现类型全名查找服务，避免 Any+First 双重枚举把全部实现实例化两遍 / Finds a service by implementation type full name in a single enumeration, avoiding double enumeration that would instantiate every implementation twice.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="services"></param>
-        /// <param name="fullName"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">服务类型 / The service type.</typeparam>
+        /// <param name="services">服务实例序列 / The service instance sequence.</param>
+        /// <param name="fullName">实现类型全名 / The implementation type full name.</param>
+        /// <returns>匹配实例；未找到返回 default / The matched instance, or default when not found.</returns>
         public static T? FindServiceByFullName<T>(this IEnumerable<T> services, string? fullName)
         {
             if (fullName == null)
@@ -34,8 +37,11 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 单次枚举按实现类型全名查找服务（非泛型 GetServices(Type) 返回序列）
+        /// 单次枚举按实现类型全名查找服务（用于非泛型 GetServices(Type) 返回序列）/ Finds a service by implementation type full name in a single enumeration (for non-generic GetServices(Type) sequences).
         /// </summary>
+        /// <param name="services">服务实例序列 / The service instance sequence.</param>
+        /// <param name="fullName">实现类型全名 / The implementation type full name.</param>
+        /// <returns>匹配实例；未找到返回 null / The matched instance, or null when not found.</returns>
         public static object? FindServiceByFullName(this IEnumerable<object?> services, string? fullName)
         {
             if (fullName == null)
@@ -53,10 +59,11 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        ///
+        /// 获取指定类型的服务：优先条件注册实现，否则回退 GetRequiredService / Gets a service of the specified type: the conditionally-registered implementation first, otherwise GetRequiredService.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
+        /// <typeparam name="T">服务类型 / The service type.</typeparam>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <returns>服务实例 / The service instance.</returns>
         public static T GetService<T>(this IServiceScope scope) where T : notnull
         {
             Type baseType = typeof(T);
@@ -73,11 +80,13 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 
+        /// 按服务名获取指定类型的服务；不存在则抛出异常 / Gets the named service of the specified type; throws when not registered.
         /// </summary>
-        /// <param name="serviceName"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <param name="serviceName">服务名 / The service name.</param>
+        /// <typeparam name="T">服务类型 / The service type.</typeparam>
+        /// <returns>服务实例 / The service instance.</returns>
+        /// <exception cref="ArgumentException">服务名未登记或找不到对应实例 / The service name is unregistered or no instance is found.</exception>
         public static T GetService<T>(this IServiceScope scope, string serviceName) where T : notnull
         {
             Type? mappingType = AutoInjectionSchemaStore.GetServiceType(serviceName);
@@ -97,10 +106,11 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 
+        /// 获取指定类型的全部服务实例列表 / Gets all registered instances of the specified type.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
+        /// <typeparam name="T">服务类型 / The service type.</typeparam>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <returns>实例列表 / The instance list.</returns>
         public static List<T> GetServiceList<T>(this IServiceScope scope) where T : notnull
         {
             IEnumerable<T> ss = scope.ServiceProvider.GetServices<T>();
@@ -112,10 +122,11 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 
+        /// 获取指定类型的服务：优先条件注册实现，否则回退 GetRequiredService / Gets a service of the specified type: the conditionally-registered implementation first, otherwise GetRequiredService.
         /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <param name="type">服务类型 / The service type.</param>
+        /// <returns>服务实例 / The service instance.</returns>
         public static object GetService(this IServiceScope scope, Type type)
         {
             Type? injectType = AutoInjectionSchemaStore.GetConditionalType(type);
@@ -131,11 +142,12 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 
+        /// 按服务名获取服务：先按实现类型直取，失败再遍历其接口逐个匹配；找不到则抛出异常 / Gets a named service: direct by implementation type first, then matched through its interfaces; throws when not found.
         /// </summary>
-        /// <param name="serviceName"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentException"></exception>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <param name="serviceName">服务名 / The service name.</param>
+        /// <returns>服务实例 / The service instance.</returns>
+        /// <exception cref="ArgumentException">服务名未登记或找不到对应实例 / The service name is unregistered or no instance is found.</exception>
         public static object GetService(this IServiceScope scope, string serviceName)
         {
             Type? mappingType = AutoInjectionSchemaStore.GetServiceType(serviceName);
@@ -164,11 +176,13 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 
+        /// 按服务名获取指定类型的服务；不存在则抛出异常 / Gets the named service of the specified type; throws when not registered.
         /// </summary>
-        /// <param name="serviceName"></param>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <param name="serviceName">服务名 / The service name.</param>
+        /// <param name="type">服务类型 / The service type.</param>
+        /// <returns>服务实例 / The service instance.</returns>
+        /// <exception cref="ArgumentException">服务名未登记或找不到对应实例 / The service name is unregistered or no instance is found.</exception>
         public static object GetService(this IServiceScope scope, string serviceName, Type type)
         {
             Type? mappingType = AutoInjectionSchemaStore.GetServiceType(serviceName);
@@ -187,10 +201,11 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 
+        /// 获取指定类型的全部服务实例列表 / Gets all registered instances of the specified type.
         /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <param name="type">服务类型 / The service type.</param>
+        /// <returns>实例列表 / The instance list.</returns>
         public static List<object?> GetServiceList(this IServiceScope scope,Type type)
         {
             IEnumerable<object?> ss = scope.ServiceProvider.GetServices(type);
@@ -202,10 +217,11 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 
+        /// 尝试获取指定类型的服务：优先条件注册实现，否则回退 GetService；不存在返回 null / Tries to get a service of the specified type: the conditionally-registered implementation first, otherwise GetService; returns null when not registered.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
+        /// <typeparam name="T">服务类型 / The service type.</typeparam>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <returns>服务实例或 null / The service instance or null.</returns>
         public static T? TryGetService<T>(this IServiceScope scope) where T : notnull
         {
             Type baseType = typeof(T);
@@ -222,11 +238,12 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 
+        /// 尝试按服务名获取指定类型的服务；不存在返回 null / Tries to get the named service of the specified type; returns null when not registered.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="serviceName"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">服务类型 / The service type.</typeparam>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <param name="serviceName">服务名 / The service name.</param>
+        /// <returns>服务实例或 null / The service instance or null.</returns>
         public static T? TryGetService<T>(this IServiceScope scope, string serviceName)
         {
             Type? mappingType = AutoInjectionSchemaStore.GetServiceType(serviceName);
@@ -240,10 +257,11 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 
+        /// 尝试获取指定类型的服务：优先条件注册实现，否则回退 GetService；不存在返回 null / Tries to get a service of the specified type: the conditionally-registered implementation first, otherwise GetService; returns null when not registered.
         /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <param name="type">服务类型 / The service type.</param>
+        /// <returns>服务实例或 null / The service instance or null.</returns>
         public static object? TryGetService(this IServiceScope scope, Type type)
         {
             Type? injectType = AutoInjectionSchemaStore.GetConditionalType(type);
@@ -260,10 +278,11 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 
+        /// 尝试按服务名获取服务（直接按映射类型解析）；不存在返回 null / Tries to get the named service (resolved directly by its mapped type); returns null when not registered.
         /// </summary>
-        /// <param name="serviceName"></param>
-        /// <returns></returns>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <param name="serviceName">服务名 / The service name.</param>
+        /// <returns>服务实例或 null / The service instance or null.</returns>
         public static object? TryGetService(this IServiceScope scope, string serviceName)
         {
             Type? mappingType = AutoInjectionSchemaStore.GetServiceType(serviceName);
@@ -276,11 +295,18 @@ namespace Rampage.DependencyInjection
         }
 
         /// <summary>
-        /// 
+        /// 尝试按服务名获取指定类型的服务；不存在返回 null / Tries to get the named service of the specified type; returns null when not registered.
         /// </summary>
-        /// <param name="serviceName"></param>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="scope">服务作用域 / The service scope.</param>
+        /// <param name="serviceName">服务名 / The service name.</param>
+        /// <param name="type">服务类型 / The service type.</param>
+        /// <returns>服务实例或 null / The service instance or null.</returns>
+        /// <remarks>
+        /// 当 <paramref name="type"/> 可赋值为 <see cref="DatabaseClient"/> 时走名称前缀特判：
+        /// 去掉服务名的 DatabaseClient 前缀得到数据库名，按实例的 <c>Name</c> 匹配，而非按实现类型全名匹配。
+        /// When <paramref name="type"/> is assignable to <see cref="DatabaseClient"/>, a name-prefix special case applies:
+        /// the DatabaseClient prefix is stripped from the service name and instances are matched by their <c>Name</c> instead of by implementation type full name.
+        /// </remarks>
         public static object? TryGetService(this IServiceScope scope, string serviceName, Type type)
         {
             Type? mappingType = AutoInjectionSchemaStore.GetServiceType(serviceName);
@@ -295,6 +321,7 @@ namespace Rampage.DependencyInjection
                 return null;
             }
 
+            // DatabaseClient 特判：服务名 = 前缀 + 数据库名，按实例 Name 匹配 / DatabaseClient special case: service name = prefix + database name, matched by instance Name
             if (typeof(DatabaseClient).IsAssignableFrom(type))
             {
                 string dbName = serviceName.Substring(DatabaseClient.SERVICE_NAME_PREFIX.Length);

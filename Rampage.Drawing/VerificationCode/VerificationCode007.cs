@@ -5,18 +5,19 @@ using System.IO;
 namespace Rampage.Drawing.VerificationCode
 {
     /// <summary>
-    /// 验证码 - 噪点干扰(彩色)
+    /// 验证码 - 噪点干扰(彩色) / Verification code with colored dot interference.
     /// </summary>
     /// <remarks>
     ///  Description:    验证码 - 噪点干扰(彩色)
-    ///                  
+    ///                  数字字母混合（已剔除易混淆字符）；文字与噪点均从彩色数组中随机取色，逐字符换色。
+    ///
     ///  History:        2015/4/28 19:16:04 创建
-    ///                  
+    ///
     /// </remarks>
     public class VerificationCode007 : VerificationCodeBase
     {
         /// <summary>
-        /// 
+        /// 获取样式名称：噪点干扰(彩色) / Gets the style name: dot interference (colored).
         /// </summary>
         public override string Name
         {
@@ -24,10 +25,20 @@ namespace Rampage.Drawing.VerificationCode
         }
 
         /// <summary>
-        /// 
+        /// 生成验证码图片：随机数字字母混合码 + 彩色噪点干扰 /
+        /// Generate the image: random alphanumeric code plus colored dot interference.
         /// </summary>
-        /// <param name="validataCode"></param>
-        /// <returns></returns>
+        /// <remarks>
+        /// 字符集为数字 2–9 与大小写字母（剔除 0、O、o、1、l、I、i、J、j、L 等易混淆字符）；
+        /// 每个字符独立从 DrawColors 随机取色，噪点每 5 个换一次色。
+        /// 返回值为 MemoryStream 的底层缓冲区（GetBuffer），长度通常大于实际 PNG 数据、尾部含冗余字节；PNG 解码器一般可容忍。
+        /// The character pool is digits 2–9 plus mixed-case letters with easily confused ones removed; each character
+        /// picks its color at random from DrawColors and the dots recolor every five draws.
+        /// The returned array is the stream's underlying buffer (GetBuffer), usually longer than the actual PNG payload
+        /// with trailing unused bytes; PNG decoders normally tolerate them.
+        /// </remarks>
+        /// <param name="validataCode">输出：生成的验证码字符串（用户须原样输入） / Output: the generated code the user must enter verbatim.</param>
+        /// <returns>PNG 图片字节数组（可能含尾部冗余字节） / The PNG image bytes (may include trailing unused bytes).</returns>
         public override byte[] CreateImage(out string validataCode)
         {
             string strFormat = "2,3,4,5,6,7,8,9,a,b,c,d,e,f,g,h,k,m,n,p,q,r,s,t,u,v,w,x,y,z,A,B,C,D,E,F,G,H,K,M,N,P,Q,R,S,T,U,V,W,X,Y,Z";
@@ -57,7 +68,8 @@ namespace Rampage.Drawing.VerificationCode
 
         bool fontTextRenderingHint = false;
         /// <summary>
-        /// 验证码美化
+        /// 文字抗锯齿开关（true 开启抗锯齿，默认 false，对应绘制时的 IsAntialias） /
+        /// Toggles text anti-aliasing (true = on; false by default, mapped to IsAntialias when drawing).
         /// </summary>
         bool FontTextRenderingHint
         {
@@ -67,7 +79,7 @@ namespace Rampage.Drawing.VerificationCode
 
         int validataCodeLength = 4;
         /// <summary>
-        /// 验证码长度
+        /// 验证码字符个数（默认 4） / The number of characters in the code (4 by default).
         /// </summary>
         public int ValidataCodeLength
         {
@@ -77,7 +89,7 @@ namespace Rampage.Drawing.VerificationCode
 
         int validataCodeSize = 28;
         /// <summary>
-        /// 验证码字体大小
+        /// 验证码字符的字体大小，单位像素（默认 28） / The font size of the characters in pixels (28 by default).
         /// </summary>
         public int ValidataCodeSize
         {
@@ -87,7 +99,8 @@ namespace Rampage.Drawing.VerificationCode
 
         int imageHeight = 56;
         /// <summary>
-        /// 图片高度
+        /// 图片高度，单位像素（默认 56）；图片宽度按验证码长度与字号自动推算 /
+        /// The image height in pixels (56 by default); the width is derived from code length and font size.
         /// </summary>
         public int ImageHeight
         {
@@ -97,7 +110,8 @@ namespace Rampage.Drawing.VerificationCode
 
         int padding = 1;
         /// <summary>
-        /// 边框补(默认1像素)
+        /// 边框留白（默认 1 像素）。注意：当前渲染逻辑未读取该属性 /
+        /// Padding around the border (1 pixel by default). Note: the current rendering logic never reads it.
         /// </summary>
         public int Padding
         {
@@ -107,7 +121,7 @@ namespace Rampage.Drawing.VerificationCode
 
         SKColor[] chaosColors = new SKColor[] { new SKColor(0x6B, 0x42, 0x26), new SKColor(0x4F, 0x2F, 0x4F), new SKColor(0x32, 0x99, 0xcc), new SKColor(0xCD, 0x7F, 0x32), new SKColor(0x23, 0x23, 0x8E), new SKColor(0x70, 0xDB, 0x93), new SKColor(255, 0, 0), new SKColor(0xbc, 0x8f, 0x8E) };
         /// <summary>
-        /// 输出燥点的颜色
+        /// 噪点随机取色数组（默认 8 种彩色） / The color pool the noise dots pick from at random (8 colors by default).
         /// </summary>
         public SKColor[] ChaosColors
         {
@@ -117,7 +131,7 @@ namespace Rampage.Drawing.VerificationCode
 
         SKColor backgroundColor = new SKColor(255, 255, 255);
         /// <summary>
-        /// 自定义背景色(默认白色)
+        /// 背景色（默认白色） / The background color (white by default).
         /// </summary>
         public SKColor BackgroundColor
         {
@@ -127,7 +141,8 @@ namespace Rampage.Drawing.VerificationCode
 
         SKColor[] drawColors = new SKColor[] { new SKColor(0x6B, 0x42, 0x26), new SKColor(0x4F, 0x2F, 0x4F), new SKColor(0x32, 0x99, 0xcc), new SKColor(0xCD, 0x7F, 0x32), new SKColor(0x23, 0x23, 0x8E), new SKColor(0x70, 0xDB, 0x93), new SKColor(255, 0, 0), new SKColor(0xbc, 0x8f, 0x8E) };
         /// <summary>
-        /// 自定义颜色
+        /// 文字随机取色数组（默认 8 种彩色，逐字符随机取色） /
+        /// The color pool the characters pick from at random (8 colors by default, one draw per character).
         /// </summary>
         public SKColor[] DrawColors
         {
@@ -137,7 +152,8 @@ namespace Rampage.Drawing.VerificationCode
 
         string validateCodeFont = "Arial";
         /// <summary>
-        /// 自定义字体
+        /// 字体族名（默认 Arial，须为系统已安装字体；本类不含内嵌字体） /
+        /// The font family name (Arial by default; must be installed on the system - no font is embedded).
         /// </summary>
         public string VerificationCodeFont
         {
@@ -148,6 +164,12 @@ namespace Rampage.Drawing.VerificationCode
         #endregion
 
         #region CreateImage
+        /// <summary>
+        /// 按验证码长度与字号计算宽度并创建位图，再交由 CreateImageBmp 绘制 /
+        /// Creates the bitmap sized from the code length and font size, then draws it via CreateImageBmp.
+        /// </summary>
+        /// <param name="bitmap">输出：创建好的位图 / Output: the created bitmap.</param>
+        /// <param name="validataCode">验证码字符串 / The verification code string.</param>
         void ImageBmp(out SKBitmap bitmap, string validataCode)
         {
             int width = (int)(((this.validataCodeLength * this.validataCodeSize) * 1.2));
@@ -156,10 +178,13 @@ namespace Rampage.Drawing.VerificationCode
         }
 
         /// <summary>
-        /// 绘制验证码图片
+        /// 绘制验证码图片（彩色噪点 + 逐字符随机彩色文字） /
+        /// Draws the code characters and the colored dot interference.
         /// </summary>
-        /// <param name="bitmap"></param>
-        /// <param name="validateCode"></param>
+        /// <remarks>绘制顺序：先画 2×2 方块噪点（位于文字下层，数量为字符数的 10 倍，每 5 个从 ChaosColors 换一次色），
+        /// 再逐字符绘制文字（每个字符独立从 DrawColors 随机取色）；文字随机横/纵向偏移规则同 001。</remarks>
+        /// <param name="bitmap">目标位图 / The target bitmap.</param>
+        /// <param name="validateCode">验证码字符串 / The verification code string.</param>
         void CreateImageBmp(ref SKBitmap bitmap, string validateCode)
         {
             int minValue = (int)Math.Floor(this.ValidataCodeSize / 2M);
@@ -207,11 +232,13 @@ namespace Rampage.Drawing.VerificationCode
         }
 
         /// <summary>
-        /// 获取随机数
+        /// 从逗号分隔的候选字符串中随机抽取指定数量的字符组成验证码 /
+        /// Builds the code by picking len characters at random from a comma-separated pool.
         /// </summary>
-        /// <param name="formatString"></param>
-        /// <param name="len"></param>
-        /// <param name="codeString"></param>
+        /// <remarks>随机索引由 rnd.Next(100000) 对候选数取模得到，存在轻微取模偏差；候选字符集为常规规模时可忽略。</remarks>
+        /// <param name="formatString">逗号分隔的候选字符集 / The comma-separated character pool.</param>
+        /// <param name="len">要抽取的字符个数 / The number of characters to pick.</param>
+        /// <param name="codeString">输出：生成的验证码字符串 / Output: the generated code string.</param>
         private static void GetRandom(string formatString, int len, out string codeString)
         {
             int j1;

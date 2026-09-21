@@ -6,7 +6,8 @@ using System.Reflection;
 namespace Rampage.Data.Filter
 {
     /// <summary>
-    /// 筛选器结构存储，用以优化反射产生的性能损耗
+    /// 筛选器结构存储，用以优化反射产生的性能损耗（首次访问某筛选器类型时解析并缓存其结构）
+    /// Filter schema store caching parsed schemas to avoid repeated reflection cost (a type is parsed and cached on first access)
     /// </summary>
     public class FilterSchemaStore
     {
@@ -27,7 +28,8 @@ namespace Rampage.Data.Filter
         }
 
         /// <summary>
-        /// 
+        /// 已缓存的筛选器结构列表（静态共享，全程只增不减）
+        /// Cached filter schemas (static, shared, append-only)
         /// </summary>
         public static List<FilterSchema> FilterSchemaList
         {
@@ -36,10 +38,14 @@ namespace Rampage.Data.Filter
         }
 
         /// <summary>
-        /// 
+        /// 反射解析一个筛选器类型并构建其结构：读取类级 <see cref="FilterAttribute"/>（缺省时表名取类名并去除 "Filter" 后缀），
+        /// 遍历公开属性生成筛选项（无特性时按属性名给默认项），最后按 SortOrder 降序排序
+        /// Reflect over a filter type and build its schema: reads the class-level <see cref="FilterAttribute"/>
+        /// (table name defaults to the class name with a trailing "Filter" suffix stripped), walks public properties into
+        /// filter items (defaulted by property name when unattributed), then sorts by SortOrder descending
         /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="type">筛选器类型 / Filter type</param>
+        /// <returns>构建的结构 / The built schema</returns>
         private static FilterSchema GetFilterSchemaFromType(Type type)
         {
             FilterSchema schema = new FilterSchema();
@@ -139,10 +145,11 @@ namespace Rampage.Data.Filter
         }
 
         /// <summary>
-        /// 
+        /// 取得筛选器类型的结构：命中缓存直接返回，否则解析、缓存并返回（全程持锁）
+        /// Get the schema of a filter type: returns the cached one, otherwise parses, caches and returns it (lock-held throughout)
         /// </summary>
-        /// <param name="type"></param>
-        /// <returns></returns>
+        /// <param name="type">筛选器类型 / Filter type</param>
+        /// <returns>筛选器结构 / The filter schema</returns>
         public static FilterSchema? GetFilterSchema(Type type)
         {
             lock (_storeLock)
@@ -158,9 +165,11 @@ namespace Rampage.Data.Filter
         }
 
         /// <summary>
-        /// 
+        /// 泛型便捷重载：取得指定筛选器类型的结构
+        /// Generic convenience overload: get the schema of the specified filter type
         /// </summary>
-        /// <returns></returns>
+        /// <typeparam name="F">筛选器类型 / Filter type</typeparam>
+        /// <returns>筛选器结构 / The filter schema</returns>
         public static FilterSchema? GetFilterSchema<F>() where F : DataFilter, new()
         {
             Type type = typeof(F);

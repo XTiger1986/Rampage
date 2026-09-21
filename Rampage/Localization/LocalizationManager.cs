@@ -5,8 +5,14 @@ using System.Globalization;
 namespace Rampage.Localization
 {
 	/// <summary>
-	/// Localized Language Resource Manager
+	/// 本地化语言资源管理器：静态扫描 {应用基目录}/{RootDirectory}/{模块}/{语言}.json 装载各模块资源。
+	/// / Localized resource manager: statically scans {base dir}/{RootDirectory}/{module}/{language}.json to load module resources.
 	/// </summary>
+	/// <remarks>
+	/// 每个语言文件以 ConfigurationManager + AddJsonFile(reloadOnChange:true) 装载，文件变更自动生效；
+	/// 框架不维护全局“当前语言”，语言由 <see cref="CultureInfoGetter"/> 委托或调用方显式传入的 culture 决定；
+	/// 取值回退链：请求语言 → 默认语言（default.json）→ 模块首个资源 → 键名本身（GetText 最终回退）。
+	/// </remarks>
 	public class LocalizationManager
     {
         private static object _locker = new object();
@@ -28,7 +34,10 @@ namespace Rampage.Localization
         }
 
         /// <summary>
-        /// 
+        /// 扫描资源根目录初始化模块资源：每个一级子目录视为一个模块，目录内每个 *.json（文件名即语言名）
+        /// 装载为一个 LocalizationResource；根目录不存在时不加载任何模块。
+        /// / Scan the resource root to initialize modules: each first-level subdirectory is a module, and each *.json
+        /// inside (file name = language) is loaded as a LocalizationResource; no modules are loaded when the root is missing.
         /// </summary>
         private static void Initialize()
         {
@@ -77,7 +86,10 @@ namespace Rampage.Localization
         }
 
         /// <summary>
-        /// 
+        /// 从全局配置的 "LocalizationConfig" 节重读本地化配置，空缺项回填默认值
+        /// （_localization_resources / Global / default）。
+        /// / Re-read the "LocalizationConfig" section from the global configuration, filling defaults
+        /// (_localization_resources / Global / default) for missing values.
         /// </summary>
         public static void ReloadConfig()
         {
@@ -96,7 +108,8 @@ namespace Rampage.Localization
         }
 
         /// <summary>
-        /// 
+        /// 当前生效的本地化配置（由 ReloadConfig 设置）。
+        /// / The effective localization config (set by ReloadConfig).
         /// </summary>
         public static LocalizationConfig Config
         {
@@ -105,7 +118,8 @@ namespace Rampage.Localization
         } = default!;
 
         /// <summary>
-        /// 
+        /// 模块名 → 模块资源 的映射表。
+        /// / Map of module name to its resources.
         /// </summary>
         internal static Dictionary<string, LocalizationModule> ModuleResources
         {
@@ -114,7 +128,8 @@ namespace Rampage.Localization
         } = default!;
 
         /// <summary>
-        /// 自定义获取当前语言的委托函数
+        /// 自定义获取当前语言的委托函数；未设置或返回 null 时按默认语言（default.json）处理。
+        /// / Custom delegate returning the current culture; when unset (or returning null) the default language (default.json) is used.
         /// </summary>
         public static Func<CultureInfo>? CultureInfoGetter
         {
@@ -123,21 +138,24 @@ namespace Rampage.Localization
         }
 
 		/// <summary>
-		/// get Localized Language Resource
+		/// 获取默认模块（Config.DefaultModuleName）的语言资源。
+		/// / Get the language resource of the default module (Config.DefaultModuleName).
 		/// </summary>
-		/// <param name="culture"></param>
-		/// <returns></returns>
+		/// <param name="culture">目标语言；为 null 时调用 CultureInfoGetter / target culture; CultureInfoGetter is consulted when null</param>
+		/// <returns>语言资源；默认模块不存在时返回 null / the resource, or null when the default module is missing</returns>
 		public static LocalizationResource? GetResource(CultureInfo? culture = null)
         {
             return GetResource(Config.DefaultModuleName, culture);
         }
 
 		/// <summary>
-		/// get Localized Language Resource
+		/// 获取指定模块的语言资源；culture 为 null 时调用 CultureInfoGetter；模块内语言回退由 LocalizationModule 处理。
+		/// / Get the language resource of the given module; CultureInfoGetter is consulted when culture is null;
+		/// in-module language fallback is handled by LocalizationModule.
 		/// </summary>
-		/// <param name="moduleName"></param>
-		/// <param name="culture"></param>
-		/// <returns></returns>
+		/// <param name="moduleName">模块名 / module name</param>
+		/// <param name="culture">目标语言；为 null 时调用 CultureInfoGetter / target culture; CultureInfoGetter is consulted when null</param>
+		/// <returns>语言资源；模块不存在时返回 null / the resource, or null when the module does not exist</returns>
 		public static LocalizationResource? GetResource(string moduleName, CultureInfo? culture = null)
         {
             if (culture == null)
@@ -153,10 +171,11 @@ namespace Rampage.Localization
         }
 
         /// <summary>
-        /// 
+        /// 获取指定名称的模块。
+        /// / Get the module by name.
         /// </summary>
-        /// <param name="moduleName"></param>
-        /// <returns></returns>
+        /// <param name="moduleName">模块名 / module name</param>
+        /// <returns>模块；不存在时返回 null / the module, or null when missing</returns>
         public static LocalizationModule? GetModule(string moduleName)
         {
             if (ModuleResources.ContainsKey(moduleName))

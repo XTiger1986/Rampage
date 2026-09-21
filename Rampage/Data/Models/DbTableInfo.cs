@@ -3,22 +3,26 @@
 namespace Rampage.Data
 {
     /// <summary>
-    /// data table info
+    /// 数据表结构信息
+    /// Data table info
     /// </summary>
     public class DbTableInfo
     {
         /// <summary>
-        /// data table name
+        /// 数据表名
+        /// Data table name
         /// </summary>
         public string? TableName { get; set; }
 
         /// <summary>
-        /// table comment
+        /// 表注释
+        /// Table comment
         /// </summary>
         public string? Comment { get; set; }
 
         /// <summary>
-        /// table column info list
+        /// 表字段信息列表
+        /// Table column info list
         /// </summary>
         public List<DbColumnInfo>? Columns { get; set; }
     }

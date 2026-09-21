@@ -7,16 +7,21 @@ using System.Data;
 namespace Rampage.DatabaseLibrary.MySql
 {
 
-    /// <summary>
-    /// MySql DatabaseClient
-    /// </summary>
+    /// <summary>MySQL æ•°æ®åº“å®¢æˆ·ç«¯ï¼ˆMySqlConnector é©±åŠ¨ï¼‰/ MySQL database client (MySqlConnector driver).</summary>
+    /// <remarks>
+    /// é›†æˆæ¨¡å¼ï¼šæ„é€ æ—¶è®¾ç½® <see cref="MySqlTemplate"/> æ–¹è¨€æ¨¡æ¿ï¼›æ•°æ®è®¿é—®ç» <see cref="DatabaseClient.DataAccessor"/> å§”æ´¾ï¼Œ
+    /// é»˜è®¤ä½¿ç”¨ <see cref="MySqlDataAccessor"/>ï¼ˆåŸç”Ÿ ADO.NET å®ç°ï¼‰ï¼›å½“ DatabaseFactory æŒ‰å®¢æˆ·ç«¯ Name é…ç½®äº†
+    /// å…¶ä»–è®¿é—®å™¨ç±»å‹ï¼ˆå¦‚ DapperDataAccessorï¼‰æ—¶ä¼˜å…ˆä½¿ç”¨é…ç½®é¡¹ã€‚
+    /// Integration: the ctor installs the <see cref="MySqlTemplate"/> dialect; data access is delegated through
+    /// <see cref="DatabaseClient.DataAccessor"/>, defaulting to <see cref="MySqlDataAccessor"/> (native ADO.NET);
+    /// an accessor type registered per client Name in DatabaseFactory (e.g. DapperDataAccessor) takes precedence.
+    /// </remarks>
     public class MySqlClient : DatabaseClient
     {
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="dataAccessor"></param>
+        /// <summary>è®¾ç½®é»˜è®¤æ•°æ®è®¿é—®å™¨ï¼šæœªæä¾›æ—¶åˆ›å»º <see cref="MySqlDataAccessor"/> å¹¶èµ‹ç»™ DataAccessor / Installs the default data accessor: creates an <see cref="MySqlDataAccessor"/> and assigns it to DataAccessor when none was supplied.</summary>
+        /// <param name="dataAccessor">å¤–éƒ¨ä¼ å…¥çš„è®¿é—®å™¨ï¼›null è¡¨ç¤ºä½¿ç”¨é»˜è®¤ / an externally supplied accessor; null means use the default.</param>
+        /// <returns>ç”Ÿæ•ˆçš„æ•°æ®è®¿é—®å™¨ / the effective data accessor.</returns>
         protected override IDataAccessor? SetDefaultDataAccessor(IDataAccessor? dataAccessor)
         {
             if (dataAccessor == null)
@@ -27,35 +32,31 @@ namespace Rampage.DatabaseLibrary.MySql
             return dataAccessor;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <summary>åˆå§‹åŒ–å®¢æˆ·ç«¯å¹¶å®‰è£… MySQL æ–¹è¨€æ¨¡æ¿ / Initializes the client and installs the MySQL dialect template.</summary>
         public MySqlClient() : base()
         {
             SqlTemplate = new MySqlTemplate();
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="conn"></param>
+        /// <summary>ç”¨å·²æœ‰è¿æ¥åˆå§‹åŒ–å®¢æˆ·ç«¯å¹¶å®‰è£… MySQL æ–¹è¨€æ¨¡æ¿ / Initializes the client with an existing connection and installs the MySQL dialect template.</summary>
+        /// <param name="conn">å·²æ‰“å¼€æˆ–å¾…æ‰“å¼€çš„åŸç”Ÿ MySqlConnection / an existing MySqlConnection, open or closed.</param>
         public MySqlClient(IDbConnection conn) : base(conn)
         {
             SqlTemplate = new MySqlTemplate();
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="connString">custom database connectionString</param>
+        /// <summary>ç”¨è‡ªå®šä¹‰è¿æ¥ä¸²åˆå§‹åŒ–å®¢æˆ·ç«¯å¹¶å®‰è£… MySQL æ–¹è¨€æ¨¡æ¿ / Initializes the client with a custom connection string and installs the MySQL dialect template.</summary>
+        /// <param name="connString">è‡ªå®šä¹‰æ•°æ®åº“è¿æ¥ä¸² / a custom database connection string.</param>
         public MySqlClient(string connString) : base(connString)
         {
             SqlTemplate = new MySqlTemplate();
         }
 
+        /// <summary>æ•°æ®åº“ç±»å‹æ ‡è¯†ï¼šMySQL / The database type: MySQL.</summary>
         public override DatabaseType DatabaseType => DatabaseType.MySQL;
 
 
+        /// <summary>è¿æ¥åˆ›å»ºå™¨ï¼šæ¯æ¬¡è®¿é—®éƒ½æ–°å»ºä¸€ä¸ªåŒ…è£…å§”æ‰˜çš„ <see cref="DatabaseConnector"/>ï¼Œå§”æ‰˜ç”¨å½“å‰ ConnectionString åˆ›å»ºåŸç”Ÿ MySqlConnection / The connection creator: each access returns a new <see cref="DatabaseConnector"/> whose delegate creates a native MySqlConnection from the current ConnectionString.</summary>
         public override DatabaseConnector? ConnectionCreator
         {
             get
@@ -70,41 +71,21 @@ namespace Rampage.DatabaseLibrary.MySql
 
 
 
-        /* ****************************************************** MySQL ******************************************************
-         * ´´½¨Êı¾İ¿â£ºCREATE DATABASE IF NOT EXISTS yourdbname DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
-         * Á¬½Ó´®Ê¾Àı£º
-        /// 1.MySQL Connector/ODBC 2.50 (MyODBC 2.50)Á¬½Ó·½Ê½
-        ///   ±¾µØÊı¾İ¿âÁ¬½Ó - Driver={MySQL};Server=localhost;Option=16834;Database=myDataBase;
-        ///   Ô¶³ÌÊı¾İÁ¬½Ó - Driver={MySQL};Server=myServerAddress;Option=131072;Stmt=;Database=myDataBase; User=myUsername;Password=myPassword;
-        ///   ÌØÊâµÄTCP/IP¶Ë¿ÚÁ¬½Ó - Driver={MySQL};Server=myServerAddress;Port=3306;Option=131072;Stmt=;Database=myDataBase; User=myUsername;Password=myPassword; (ËµÃ÷£º´ËDriverµÄÄ¬ÈÏ¶Ë¿ÚÊÇ3306¡£Èç¹ûÃ»ÓĞÔÚÁ¬½Ó×Ö·û´®ÖĞÌØ±ğÖ¸³ö¾ÍÊÇÁ¬½ÓMySQLµÄ3306¶Ë¿Ú¡£)
-        /// 2.MySQL Connector/ODBC 3.51 (MyODBC 3.51)Á¬½Ó·½Ê½
-        ///   ±¾µØÊı¾İ¿âÁ¬½Ó - Driver={MySQL ODBC 3.51 Driver};Server=localhost;Database=myDataBase; User=myUsername;Password=myPassword;Option=3;
-        ///   Ô¶³ÌÊı¾İÁ¬½Ó - Driver={MySQL ODBC 3.51 Driver};Server=data.domain.com;Database=myDataBase;User=myUsername; Password=myPassword;Option=3;
-        ///   ÌØÊâµÄTCP/IP¶Ë¿ÚÁ¬½Ó - Driver={MySQL ODBC 3.51 Driver};Server=data.domain.com;Port=3306;Database=myDataBase;User=myUsername; Password=myPassword;Option=3;  (ËµÃ÷£º´ËDriverµÄÄ¬ÈÏ¶Ë¿ÚÊÇ3306¡£Èç¹ûÃ»ÓĞÔÚÁ¬½Ó×Ö·û´®ÖĞÌØ±ğÖ¸³ö¾ÍÊÇÁ¬½ÓMySQLµÄ3306¶Ë¿Ú¡£)
-        ///   ÌØÊâ×Ö·û¼¯µÄÁ¬½Ó - Driver={MySQL ODBC 3.51 Driver};Server=data.domain.com;charset=UTF8;Database=myDataBase;User=myUsername; Password=myPassword;Option=3;
-        /// 3.OLE DB, OleDbConnection (.NET)Á¬½Ó·½Ê½
-        ///   ±ê×¼Á¬½Ó - Provider=MySQLProv;Data Source=mydb;User Id=myUsername;Password=myPassword;
-        /// 4.MySQL Connector/Net (.NET)Á¬½Ó·½Ê½
-        ///   ±ê×¼Á¬½Ó(ËµÃ÷£¬Ä¬ÈÏ¶Ë¿ÚÊÇ3306¡£) - Server=myServerAddress;Database=myDataBase;Uid=myUsername;Pwd=myPassword;
-        ///   ÌØÊâµÄTCP/IP¶Ë¿ÚÁ¬½Ó - Server=myServerAddress;Port=1234;Database=myDataBase;Uid=myUsername;Pwd=myPassword;
-        ///   ÃüÃû¹ÜµÀ - Server=myServerAddress;Port=-1;Database=myDataBase;Uid=myUsername;Pwd=myPassword; (ËµÃ÷£º¶Ë¿ÚÖµÎª-1£¬ËµÃ÷ÓÃÃüÃû¹ÜµÀ·½Ê½Á¬½Ó¡£´Ë·½Ê½Ö»ÔÚWindowsÏÂÓĞĞ§£¬ÔÚUNIXÏÂÓÃ»á±»ºöÂÔ¡£)
-        ///   ¶à·şÎñÆ÷Á¬½Ó - Server=serverAddress1 & serverAddress2 & etc..;Database=myDataBase;Uid=myUsername;Pwd=myPassword; (ÓÃ´ËÖÖ·½Ê½Á¬½Óµ½Êı¾İ¿âÖĞ£¬²»±Øµ£ĞÄ¸ÃÊ¹ÓÃÄÄ¸öÊı¾İ¿â¡£)
-        ///   ¼ÓÃÜÑ¡Ïî - Server=myServerAddress;Port=-1;Database=myDataBase;Uid=myUsername;Pwd=myPassword; (ÕâÌõ»î¶¯µÄSSLÁ¬½Ó¼ÓÃÜËùÓĞ¿Í»§¶ËºÍ·şÎñÆ÷ÉÌµÄÊı¾İ´«Êä¡£¶øÇÒ·şÎñÆ÷ÒªÓĞÒ»¸öÖ¤Êé¡£Õâ¸öÑ¡Ïî´ÓConnector/NET5.0.3°æ¿ªÊ¼³öÏÖ)
-        ///   ĞŞ¸ÄÄ¬ÈÏµÄÃüÁî³¬Ê±Ê±¼ä - Server=myServerAddress;Database=myDataBase;Uid=myUsername;Pwd=myPassword;default command timeout=20; (Ê¹ÓÃÕâÌõĞŞ¸ÄÁ¬½ÓµÄÄ¬ÈÏÃüÁî³¬Ê±Ê±¼ä¡£×¢Òâ£º´ËÌõ²»»áÓ°ÏìÄãÔÚµ¥¶ÀÃüÁî¶ÔÏóÉÏÉèÖÃµÄ³¬Ê±Ê±¼ä¡£´ËÌõÖ»¶ÔConnector/NET 5.1.4 ¼°ÒÔÉÏµÄ°æ±¾ÓĞĞ§.)
-        ///   ĞŞ¸ÄÁ¬½Ó³¢ÊÔÊ±¼ä - Server=myServerAddress;Database=myDataBase;Uid=myUsername;Pwd=myPassword;Connection Timeout=5; (Ê¹ÓÃÕâÌõĞŞ¸ÄÔÚÖÕÖ¹ÖØÊÔºÍ½ÓÊÕ´íÎóµÄµÈ´ıÊ±¼ä(ÒÔÃëÎªµ¥Î»))
-        ///   Inactivating prepared statements - Server=myServerAddress;Database=myDataBase;Uid=myUsername;Pwd=myPassword;Ignore Prepare=true; (Use this one to instruct the provider to ignore any command prepare statements and prevent corruption issues with server side prepared statements.´ËÑ¡Ïî±»¼ÓÈëµ½Connector/NETµÄ5.0.3°æºÍ1.0.9°æ¡£)
-        ///   ÌØÊâµÄTCP/IP¶Ë¿ÚÁ¬½Ó - Server=myServerAddress;Database=myDataBase;Uid=myUsername;Pwd=myPassword;Port=3306; (ÕâÌõÓï¾äĞŞ¸ÄÁ¬½ÓµÄ¶Ë¿Ú¡£Ä¬ÈÏ¶Ë¿ÚÊÇ3306¡£´Ë²ÎÊı»á±»UnixºöÂÔ¡£)
-        ///   ÌØÊâÍøÂçĞ­Òé - Server=myServerAddress;Database=myDataBase;Uid=myUsername;Pwd=myPassword;Protocol=socket; (ÕâÌõÓï¾äĞŞ¸ÄÓÃÄÄÖÖĞ­Òé½øĞĞÁ¬½Ó¡£Èç¹ûÃ»ÓĞÌØ±ğËµÃ÷£¬"socket"ÊÇÄ¬ÈÏµÄÖµ¡£"tcp"ÊÇÓë"socket"ÏàÍ¬ÒâÒåµÄ¡£"pipe"ÊÇÊ¹ÓÃÃüÃû¹ÜµÀÁ¬½Ó£¬"unix"ÊÇÊ¹ÓÃ unix socketÁ¬½Ó£¬"memory"ÊÇÊ¹ÓÃMySQLµÄ¹²ÏíÄÚ´æ¡£)
-        ///   ÌØÊâ×Ö·û¼¯µÄÁ¬½Ó - Server=myServerAddress;Database=myDataBase;Uid=myUsername;Pwd=myPassword;CharSet=UTF8; (Õâ¸öÓï¾äÖ¸³öÒÔÊ¹ÖÖ×Ö·û´®±àÂë·¢ËÍµ½·şÎñÆ÷ÉÏµÄ²éÑ¯Óï¾ä¡£×¢Òâ£º²éÑ¯½á¹ûÈÔÈ»ÊÇÒÔ·´»ØÊı¾İµÄ¸ñÊ½´«ËÍ¡£)
-        ///   ĞŞ¸Ä¹²ÏíÄÚ´æÃû - Server=myServerAddress;Database=myDataBase;Uid=myUsername;Pwd=myPassword;Shared Memory Name=MySQL; (´ËÓï¾äÓÃÀ´ĞŞ¸ÄÓÃÀ´Í¨ĞÅµÄ¹²ÏíÄÚ´æÃû³Æ¡£ËµÃ÷£º´ËÓï¾äÖ»ÓĞµ±Á¬½ÓĞ­ÒéÉèÖÃÎª"memory"Ê±²ÅÓĞĞ§¡£)
-        /// 5.MySQLConnection (.NET)Á¬½Ó·½Ê½
-        ///   eInfoDesigns.dbProvider - Data Source=myServerAddress;Database=myDataBase;User ID=myUsername;Password=myPassword;Command Logging=false;
-        /// 6.SevenObjects MySQLClient (.NET)Á¬½Ó·½Ê½
-        ///   ±ê×¼Á¬½Ó - Host=myServerAddress;UserName=myUsername;Password=myPassword;Database=myDataBase;
-        /// 7.Core Labs MySQLDirect (.NET)Á¬½Ó·½Ê½
-        ///   ±ê×¼Á¬½Ó - User ID=root;Password=myPassword;Host=localhost;Port=3306;Database=myDataBase; Direct=true;Protocol=TCP;Compress=false;Pooling=true;Min Pool Size=0;Max Pool Size=100;Connection Lifetime=0;
-        /// 8.MySQLDriverCS (.NET)Á¬½Ó·½Ê½
-        ///   ±ê×¼Á¬½Ó - ocation=myServerAddress;Data Source=myDataBase;User ID=myUsername;Password=myPassword;Port=3306;Extended Properties="""";
-         * */
+        /* ******************************** MySQL å¤‡å¿˜ / MySQL cheat sheet ********************************
+         * æœ¬å®¢æˆ·ç«¯å®é™…ä½¿ç”¨ MySqlConnector é©±åŠ¨ï¼ˆMySqlConnectionï¼‰ã€‚
+         * This client actually uses the MySqlConnector driver (MySqlConnection).
+         *
+         * åˆ›å»ºæ•°æ®åº“ / Create database:
+         *   CREATE DATABASE IF NOT EXISTS yourdbname DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
+         *
+         * è¿æ¥ä¸²ç¤ºä¾‹ï¼ˆMySqlConnectorï¼‰/ Connection string samples (MySqlConnector):
+         *   æ ‡å‡†è¿æ¥ / standard     - Server=myServerAddress;Port=3306;Database=myDataBase;Uid=myUsername;Pwd=myPassword;
+         *   è¿æ¥/å‘½ä»¤è¶…æ—¶ / timeouts - Server=myServerAddress;Database=myDataBase;Uid=myUsername;Pwd=myPassword;Connection Timeout=5;Default Command Timeout=20;
+         *   åŠ å¯†ä¼ è¾“ / TLS          - Server=myServerAddress;Database=myDataBase;Uid=myUsername;Pwd=myPassword;SSL Mode=Required;
+         * å­—ç¬¦é›†è¯´æ˜ï¼šMySqlConnector å§‹ç»ˆä»¥ utf8mb4 é€šä¿¡ï¼Œè¿æ¥ä¸²ä¸­çš„ CharSet/Character Set é€‰é¡¹ä¼šè¢«å¿½ç•¥ï¼Œ
+         * å»ºè®®å»ºåº“æ—¶ç»Ÿä¸€ utf8mb4ï¼›æ—§é©±åŠ¨ï¼ˆMyODBC / OLE DB / Connector/Net ç­‰ï¼‰çš„è¿æ¥ä¸²æ ·æœ¬å·²åˆ é™¤ã€‚
+         * Charset note: MySqlConnector always speaks utf8mb4 and ignores CharSet/Character Set in the connection string,
+         * so create the database as utf8mb4; samples for legacy drivers (MyODBC / OLE DB / Connector/Net etc.) were removed.
+         * ************************************************************************************************ */
     }
 }

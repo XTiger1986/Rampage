@@ -4,7 +4,8 @@ using System.Security.Cryptography;
 namespace Rampage.Utilities
 {
     /// <summary>
-    /// 
+    /// 数学工具类（数字列表构建、加密安全随机数） /
+    /// Math utility class (number list building, cryptographically secure random numbers)
     /// </summary>
     public class MathTool
     {
@@ -46,11 +47,16 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        /// 
+        /// 生成 [min, max) 区间内的加密安全随机整数 /
+        /// Generate a cryptographically secure random integer in [min, max)
         /// </summary>
-        /// <param name="min">The inclusive lower bound of the random range.</param>
-        /// <param name="max">The exclusive upper bound of the random range.</param>
-        /// <returns></returns>
+        /// <remarks>
+        /// min 与 max 相等时直接返回该值（避免空区间）；大小顺序颠倒时自动交换后再生效。
+        /// When min equals max the value is returned directly (avoiding an empty range); reversed bounds are swapped automatically.
+        /// </remarks>
+        /// <param name="min">下界（包含） / The inclusive lower bound of the random range</param>
+        /// <param name="max">上界（不包含） / The exclusive upper bound of the random range</param>
+        /// <returns>区间内的随机整数 / A random integer within the range</returns>
         public static int GenerateInt(int min, int max)
         {
             if (min == max)
@@ -72,10 +78,18 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        /// 
+        /// 按百分比概率随机判定是否成功 /
+        /// Randomly determine success by a percentage probability
         /// </summary>
-        /// <param name="successRate"></param>
-        /// <returns></returns>
+        /// <remarks>
+        /// successRate 以百分比计（0~100）：小于等于 0 恒为 false，大于等于 100 恒为 true；
+        /// 其余情况用加密随机 64 位值均匀映射到 [0,100) 后与 successRate 比较。
+        /// successRate is a percentage (0~100): values at or below 0 always return false and values at or
+        /// above 100 always return true; otherwise a cryptographically random 64-bit value is mapped
+        /// uniformly onto [0,100) and compared against successRate.
+        /// </remarks>
+        /// <param name="successRate">成功概率百分比（0~100） / The success rate percentage (0~100)</param>
+        /// <returns>是否命中成功 / true when the trial succeeds</returns>
         public static bool RandomSuccess(double successRate)
         {
             if (successRate <= 0) return false;
@@ -84,6 +98,7 @@ namespace Rampage.Utilities
             byte[] buf = new byte[8];
             RandomNumberGenerator.Fill(buf);
             ulong randRaw = BitConverter.ToUInt64(buf);
+            // 均匀映射 [0,2^64) → [0,100) / map [0,2^64) uniformly onto [0,100)
             double randVal = randRaw / (ulong.MaxValue + 1.0) * 100;
 
             return randVal < successRate;

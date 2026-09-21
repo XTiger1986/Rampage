@@ -5,13 +5,19 @@ using System.Linq;
 namespace Rampage.DependencyInjection
 {
     /// <summary>
-    /// 启动期检测 [Auto] 立即解析依赖环（不含 Lazy&lt;T&gt; 边）。
+    /// 启动期依赖环检测器：检测 [Auto] 立即解析形成的依赖环 / Startup dependency-cycle detector for eager [Auto] resolution.
     /// </summary>
+    /// <remarks>
+    /// 只检查立即解析边；<c>Lazy&lt;T&gt;</c> 边不在构造期解析，不计入环。
+    /// Only eager-resolution edges are checked; <c>Lazy&lt;T&gt;</c> edges are not resolved at construction time and do not count as cycles.
+    /// </remarks>
     public static class AutoInjectCycleDetector
     {
         /// <summary>
-        /// 发现环则抛 <see cref="InvalidOperationException"/>。
+        /// 校验服务实现类型集合，发现环则抛出异常 / Validates the service implementation types and throws if a cycle is found.
         /// </summary>
+        /// <param name="serviceImplementationTypes">待注册的服务实现类型集合 / The service implementation types to validate.</param>
+        /// <exception cref="InvalidOperationException">检测到立即解析依赖环 / An eager-resolution dependency cycle was detected.</exception>
         public static void ValidateOrThrow(IEnumerable<Type> serviceImplementationTypes)
         {
             List<Type> targets = serviceImplementationTypes
@@ -33,6 +39,11 @@ namespace Rampage.DependencyInjection
                 $"Cycle: {path}");
         }
 
+        /// <summary>
+        /// 依据各类型的 [Auto] 成员构建依赖图 / Builds the dependency graph from the [Auto] members of each type.
+        /// </summary>
+        /// <param name="targets">候选实现类型列表 / The candidate implementation types.</param>
+        /// <returns>宿主类型到其立即依赖实现类型的邻接表 / Adjacency list from host type to its eagerly-resolved dependency implementations.</returns>
         internal static Dictionary<Type, HashSet<Type>> BuildGraph(IReadOnlyList<Type> targets)
         {
             Dictionary<Type, HashSet<Type>> graph = new();
@@ -59,7 +70,7 @@ namespace Rampage.DependencyInjection
 
                     if (TryUnwrapLazy(memberType, out _))
                     {
-                        // Lazy<T> 不在构造期解析，不构成立即环
+                        // Lazy<T> 不在构造期解析，不构成立即环 / Lazy<T> is not resolved at construction time, so it does not form an eager cycle
                         continue;
                     }
 
@@ -71,7 +82,7 @@ namespace Rampage.DependencyInjection
                         }
                         else
                         {
-                            // 自依赖也算环（立即解析自身）
+                            // 自依赖也算环（立即解析自身） / Self-dependency also counts as a cycle (eagerly resolving itself)
                             graph[host].Add(impl);
                         }
                     }
@@ -81,6 +92,11 @@ namespace Rampage.DependencyInjection
             return graph;
         }
 
+        /// <summary>
+        /// 在依赖图中查找环 / Finds a cycle in the dependency graph.
+        /// </summary>
+        /// <param name="graph">邻接表 / The adjacency list.</param>
+        /// <returns>成环的类型序列（首尾相同），无环返回 null / The cyclic type sequence (start equals end), or null when acyclic.</returns>
         internal static List<Type>? FindCycle(Dictionary<Type, HashSet<Type>> graph)
         {
             HashSet<Type> visiting = new();
@@ -99,6 +115,7 @@ namespace Rampage.DependencyInjection
             return null;
         }
 
+        /// <summary>三色标记 DFS：visiting 命中即回溯出环路径 / Three-color DFS: hitting a visiting node yields the cycle path by backtracking the stack.</summary>
         private static List<Type>? Dfs(
             Type node,
             Dictionary<Type, HashSet<Type>> graph,
@@ -146,6 +163,12 @@ namespace Rampage.DependencyInjection
             return null;
         }
 
+        /// <summary>
+        /// 判断类型是否为 Lazy&lt;T&gt; 并取出元素类型 / Determines whether the type is Lazy&lt;T&gt; and extracts its element type.
+        /// </summary>
+        /// <param name="type">待检查类型 / The type to check.</param>
+        /// <param name="elementType">Lazy 的元素类型；非 Lazy 时原样返回 / The element type of the Lazy; returned unchanged when not a Lazy.</param>
+        /// <returns>是 Lazy&lt;T&gt; 返回 true / True when the type is Lazy&lt;T&gt;.</returns>
         public static bool TryUnwrapLazy(Type type, out Type elementType)
         {
             elementType = type;
@@ -158,6 +181,7 @@ namespace Rampage.DependencyInjection
             return false;
         }
 
+        /// <summary>把成员类型解析为候选实现列表：具体类即自身，接口/抽象类则取可赋值的实现 / Resolves a member type to candidate implementations: itself when concrete, otherwise all assignable implementations.</summary>
         private static List<Type> ResolveImplementations(Type serviceType, IReadOnlyList<Type> targets)
         {
             if (!serviceType.IsInterface && !serviceType.IsAbstract)

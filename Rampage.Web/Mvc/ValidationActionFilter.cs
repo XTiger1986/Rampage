@@ -10,9 +10,21 @@ using System.Reflection;
 
 namespace Rampage.Web.Mvc
 {
+    /// <summary>
+    /// 数据验证过滤器：对标注了 [Valid] 的 Action 参数执行模型校验，不通过时短路请求 / Data validation filter: validates action parameters marked with [Valid] and short-circuits the request on failure
+    /// </summary>
+    /// <remarks>
+    /// 校验失败时：Ajax 请求返回携带 ValidationResult 的 R JSON；普通请求把 R 放入 ViewBag.OperationResult 交由视图呈现。
+    /// On failure: Ajax requests get an R JSON carrying the ValidationResult; normal requests get R in ViewBag.OperationResult for the view to render.
+    /// </remarks>
     public class ValidationActionFilter : ActionFilterBase
     {
 
+        /// <summary>
+        /// Action 执行前执行数据校验，失败则短路后续执行 / Runs data validation before the action and short-circuits execution on failure
+        /// </summary>
+        /// <param name="filterContext">Action 执行上下文 / The action executing context</param>
+        /// <returns>true 继续执行 / True to continue</returns>
         protected override bool BeforeActionExecuting(ActionExecutingContext filterContext)
         {
             if (!ValidateData(filterContext))
@@ -23,6 +35,11 @@ namespace Rampage.Web.Mvc
         }
 
 
+        /// <summary>
+        /// 校验 Action 参数：仅处理带 [Valid] 特性且能取到 ParameterInfo 的参数 / Validates action parameters: only those carrying the [Valid] attribute with a resolvable ParameterInfo
+        /// </summary>
+        /// <param name="context">Action 执行上下文 / The action executing context</param>
+        /// <returns>true 表示全部通过 / True when everything passes</returns>
         protected virtual bool ValidateData(ActionExecutingContext context)
         {
             ActionDescriptor actionDescriptor = context.ActionDescriptor;

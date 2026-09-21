@@ -16,12 +16,19 @@ using System.Net;
 namespace Rampage.Management.Mvc
 {
     /// <summary>
-    /// 
+    /// 管理后台页面控制器：管理组、管理员、管理菜单与管理员操作日志的列表及编辑页面
+    /// Management backend page controller: list and edit pages for management groups, administrators, management menus and admin operation logs
     /// </summary>
     public class AdminController : SuperManagementController
     {
+        /// <summary>
+        /// 管理组服务，由 [Auto] 属性注入 / The management group service, injected via [Auto]
+        /// </summary>
         [Auto]
         protected IManageGroupService ManageGroupService = default!;
+        /// <summary>
+        /// 管理员操作日志服务，由 [Auto] 属性注入 / The admin operation log service, injected via [Auto]
+        /// </summary>
         [Auto]
         protected IAdminOperationLogService AdminOperationLogService = default!;
 
@@ -29,9 +36,9 @@ namespace Rampage.Management.Mvc
         #region ManageGroup
 
         /// <summary>
-        /// 
+        /// 管理组列表页 / The management group list page
         /// </summary>
-        /// <returns></returns>
+        /// <returns>列表视图（全量管理组，不分页）/ The list view (all management groups, unpaged)</returns>
         [PermissionAction(Title = "Management Group List", Type = PermissionActionType.Page, Resource = "GroupManagement")]
         public IActionResult Group_List()
         {
@@ -45,9 +52,9 @@ namespace Rampage.Management.Mvc
         }
 
         /// <summary>
-        /// 
+        /// 新增管理组页 / The add-management-group page
         /// </summary>
-        /// <returns></returns>
+        /// <returns>复用 Group_Edit 视图（空模型），并注入权限资源字典供勾选权限 / Reuses the Group_Edit view (empty model) with the permission resource dictionaries injected for permission selection</returns>
         [PermissionAction(Title = "Add Management Group", Type = PermissionActionType.Page, Resource = "GroupManagement")]
         public IActionResult Group_Add()
         {
@@ -57,9 +64,10 @@ namespace Rampage.Management.Mvc
         }
 
         /// <summary>
-        /// 
+        /// 编辑管理组页 / The edit-management-group page
         /// </summary>
-        /// <returns></returns>
+        /// <returns>复用 Group_Edit 视图，并注入该组已授权限与权限资源字典 / Reuses the Group_Edit view with the group's granted permissions and the permission resource dictionaries</returns>
+        /// <remarks>管理组不存在时抛出 404（SuperHttpException）。</remarks>
         [PermissionAction(Title = "Modify Management Group", Type = PermissionActionType.Page, Resource = "GroupManagement")]
         public IActionResult Group_Modify()
         {
@@ -80,9 +88,10 @@ namespace Rampage.Management.Mvc
         #region Admin
 
         /// <summary>
-        /// 
+        /// 管理员列表页（分页）/ The administrator list page (paged)
         /// </summary>
-        /// <returns></returns>
+        /// <returns>列表视图（数据、分页器与过滤条件）/ The list view (items, pager and filter)</returns>
+        /// <remarks>分页参数取自 QueryString：page=页码、ps=页大小（默认 20，上限 100）；过滤条件由请求数据渲染为 AdminFilter。</remarks>
         [PermissionAction(Title = "Administrator List", Type = PermissionActionType.Page, Resource = "AdminManagement")]
         public IActionResult Admin_List()
         {
@@ -108,9 +117,9 @@ namespace Rampage.Management.Mvc
         }
 
         /// <summary>
-        /// 
+        /// 新增管理员页 / The add-administrator page
         /// </summary>
-        /// <returns></returns>
+        /// <returns>复用 Admin_Edit 视图（空模型），并注入启用状态的管理组与权限资源字典 / Reuses the Admin_Edit view (empty model) with the enabled management groups and the permission resource dictionaries</returns>
         [PermissionAction(Title = "Add Administrator", Type = PermissionActionType.Page, Resource = "AdminManagement")]
         public IActionResult Admin_Add()
         {
@@ -121,9 +130,10 @@ namespace Rampage.Management.Mvc
         }
 
         /// <summary>
-        /// 
+        /// 编辑管理员页 / The edit-administrator page
         /// </summary>
-        /// <returns></returns>
+        /// <returns>复用 Admin_Edit 视图，并注入管理组、该管理员已授权限与权限资源字典 / Reuses the Admin_Edit view with the management groups, the admin's granted permissions and the permission resource dictionaries</returns>
+        /// <remarks>管理员不存在时抛出 404（SuperHttpException）。</remarks>
         [PermissionAction(Title = "Modify Administrator", Type = PermissionActionType.Page, Resource = "AdminManagement")]
         public IActionResult Admin_Modify()
         {
@@ -145,9 +155,9 @@ namespace Rampage.Management.Mvc
         #region ManageMenu
 
         /// <summary>
-        /// 
+        /// 管理菜单列表页（树形展示）/ The management menu list page (shown as a tree)
         /// </summary>
-        /// <returns></returns>
+        /// <returns>列表视图（树形菜单数据）/ The list view (tree-shaped menu data)</returns>
         [PermissionAction(Title = "Management Menu List", Type = PermissionActionType.Page, Resource = "ManageMenuManagement")]
         public IActionResult Menu_List()
         {
@@ -161,9 +171,9 @@ namespace Rampage.Management.Mvc
         }
 
         /// <summary>
-        /// 
+        /// 新增管理菜单页 / The add-management-menu page
         /// </summary>
-        /// <returns></returns>
+        /// <returns>复用 Menu_Edit 视图（空模型），并注入完整菜单树供选择父级 / Reuses the Menu_Edit view (empty model) with the full menu tree for parent selection</returns>
         [PermissionAction(Title = "Add Management Menu", Type = PermissionActionType.Page, Resource = "ManageMenuManagement")]
         public IActionResult Menu_Add()
         {
@@ -173,9 +183,10 @@ namespace Rampage.Management.Mvc
         }
 
         /// <summary>
-        /// 
+        /// 编辑管理菜单页 / The edit-management-menu page
         /// </summary>
-        /// <returns></returns>
+        /// <returns>复用 Menu_Edit 视图，并注入菜单树与当前菜单数据 / Reuses the Menu_Edit view with the menu tree and the current menu data</returns>
+        /// <remarks>先取整棵菜单树再从中定位目标菜单，不存在时抛出 404（SuperHttpException）。</remarks>
         [PermissionAction(Title = "Modify Management Menu", Type = PermissionActionType.Page, Resource = "ManageMenuManagement")]
         public IActionResult Menu_Modify()
         {
@@ -197,9 +208,10 @@ namespace Rampage.Management.Mvc
         #region AdminOperationLog
 
         /// <summary>
-        /// 
+        /// 管理员操作日志列表页（分页）/ The admin operation log list page (paged)
         /// </summary>
-        /// <returns></returns>
+        /// <returns>列表视图（数据、分页器与过滤条件）/ The list view (items, pager and filter)</returns>
+        /// <remarks>分页参数取自 QueryString：page=页码、ps=页大小（默认 20，上限 100）。</remarks>
         [PermissionAction(Title = "Admin Operation Log List", Type = PermissionActionType.Page, Resource = "AdminLogManagement")]
         public IActionResult AdminOperationLog_List()
         {
@@ -225,9 +237,10 @@ namespace Rampage.Management.Mvc
         }
 
         /// <summary>
-        /// 
+        /// 管理员操作日志详情页 / The admin operation log detail page
         /// </summary>
-        /// <returns></returns>
+        /// <returns>详情视图 / The detail view</returns>
+        /// <remarks>日志不存在时抛出 404（SuperHttpException）。</remarks>
         [PermissionAction(Title = "Admin Operation Log Detail", Type = PermissionActionType.Page, Resource = "AdminLogManagement")]
         public IActionResult AdminOperationLog_Detail()
         {

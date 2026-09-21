@@ -12,32 +12,55 @@ namespace Rampage.Data.Client
     /// </summary>
     public enum DatabaseType
     {
+        /// <summary>MySQL / MySQL</summary>
         MySQL,
 
+        /// <summary>Microsoft SQL Server / Microsoft SQL Server</summary>
         SqlServer,
 
+        /// <summary>SQLite / SQLite</summary>
         Sqlite,
 
+        /// <summary>PostgreSQL / PostgreSQL</summary>
         PostgreSQL,
 
+        /// <summary>Oracle / Oracle</summary>
         Oracle,
 
+        /// <summary>
+        /// 其它/未指定（枚举默认值 0，配置解析失败时的回退值）
+        /// Other/unspecified (the default enum value 0, also the fallback when config parsing fails)
+        /// </summary>
         Other = 0
     }
 
 
     /// <summary>
-    /// 
+    /// 数据库工厂：负责多库配置加载（配置节 DatabaseFactory:Clients）与客户端/访问器类型路由
+    /// Database factory: loads multi-database configuration (section DatabaseFactory:Clients) and routes client/accessor types
     /// </summary>
+    /// <remarks>
+    /// 配置在首次访问 <see cref="Config"/> 时懒加载，可调用 <see cref="ReloadConfig"/> 热重载。
+    /// 客户端类型解析：TypeName（完整类型名）优先，否则按 Type 映射到 Rampage.DatabaseLibrary.* 内置实现；
+    /// 均未配置成功时抛出依赖包缺失异常（<see cref="EX_KEY_DependencyPackageNotFound"/>）。
+    /// The configuration is lazily loaded on first access to <see cref="Config"/> and can be hot-reloaded via
+    /// <see cref="ReloadConfig"/>. Client type resolution: TypeName (full type name) first, otherwise Type maps to
+    /// the built-in Rampage.DatabaseLibrary.* implementation; a dependency-package exception
+    /// (<see cref="EX_KEY_DependencyPackageNotFound"/>) is thrown when neither resolves.
+    /// </remarks>
     public class DatabaseFactory
     {
 
+        /// <summary>
+        /// 方言依赖包未找到时使用的异常资源键 / Exception resource key used when a dialect dependency package is missing
+        /// </summary>
         public const string EX_KEY_DependencyPackageNotFound = "DependencyPackage_NotFound";
 
 
         private static volatile DatabaseFactoryConfig? _config;
         /// <summary>
-        ///
+        /// 当前生效的配置；首次访问时自动从配置节 DatabaseFactory 加载
+        /// The current configuration; automatically loaded from the DatabaseFactory section on first access
         /// </summary>
         public static DatabaseFactoryConfig Config
         {
@@ -52,8 +75,24 @@ namespace Rampage.Data.Client
         }
 
         /// <summary>
-        ///
+        /// 从配置节 DatabaseFactory 重新加载配置并发布为当前 <see cref="Config"/>
+        /// Reload the configuration from the DatabaseFactory section and publish it as the current <see cref="Config"/>
         /// </summary>
+        /// <remarks>
+        /// 处理流程：读取全局 DataAccessTypeName 与 KeepScopeConnection；解析 Clients 列表——
+        /// 连接字符串经 <see cref="DatabaseFactoryConfig.ConnectionStringDecoder"/> 解码（若已设置），
+        /// 每个客户端解析 ClientType 与可选 DataAccessType（客户端级配置优先于全局）。
+        /// ImplClientTypes/MappingModelTypes 不来自配置文件，由启动期 InitializeDatabaseClients 生成，此处从旧配置继承，
+        /// 避免热重载导致多库路由退化为第一个客户端。配置对象完整构建后才发布，避免并发读到半初始化状态。
+        /// Pipeline: reads global DataAccessTypeName and KeepScopeConnection; parses the Clients list - connection
+        /// strings are decoded via <see cref="DatabaseFactoryConfig.ConnectionStringDecoder"/> when set, and each
+        /// client resolves its ClientType and optional DataAccessType (per-client config wins over the global one).
+        /// ImplClientTypes/MappingModelTypes do not come from the config file; they are produced at startup by
+        /// InitializeDatabaseClients and inherited from the previous config here, so hot reloads do not degrade
+        /// multi-db routing to the first client. The config is published only after being fully built to avoid
+        /// concurrent readers seeing a half-initialized state.
+        /// </remarks>
+        /// <returns>重新加载后的配置对象 / The freshly loaded configuration</returns>
         public static DatabaseFactoryConfig ReloadConfig()
         {
             DatabaseFactoryConfig? previous = _config;
@@ -156,30 +195,34 @@ namespace Rampage.Data.Client
         }
 
         /// <summary>
-        /// 
+        /// 取得指定客户端的基类客户端类型（来自配置解析，未含动态生成部分）
+        /// Get the base client type of the named client (resolved from configuration, before dynamic generation)
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
+        /// <param name="name">客户端名（DatabaseClientConfig.Name） / The client name (DatabaseClientConfig.Name)</param>
+        /// <returns>基类客户端类型；名称不存在时抛出 KeyNotFoundException / The base client type; throws KeyNotFoundException for unknown names</returns>
         public static Type GetClientType(string name)
         {
             return Config!.ClientTypes![name];
         }
 
         /// <summary>
-        /// 
+        /// 取得指定客户端由启动期动态生成的实现客户端类型（InitializeDatabaseClients 之后才可用）
+        /// Get the dynamically generated implementation client type of the named client (available only after InitializeDatabaseClients)
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
+        /// <param name="name">客户端名（DatabaseClientConfig.Name） / The client name (DatabaseClientConfig.Name)</param>
+        /// <returns>实现客户端类型；名称不存在时抛出 KeyNotFoundException / The implementation client type; throws KeyNotFoundException for unknown names</returns>
         public static Type GetImplClientType(string name)
         {
             return Config!.ImplClientTypes![name];
         }
 
         /// <summary>
-        /// 
+        /// 取得指定客户端的自定义数据访问器类型（配置 DataAccessTypeName，可用于把默认实现替换为 Dapper 等）
+        /// Get the custom data accessor type configured for the named client (DataAccessTypeName, e.g. to swap in Dapper)
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
+        /// <param name="name">客户端名（DatabaseClientConfig.Name） / The client name (DatabaseClientConfig.Name)</param>
+        /// <returns>已配置的访问器类型；未配置时返回 null，表示使用客户端默认访问器
+        /// The configured accessor type; null when not configured, meaning the client's default accessor</returns>
         public static Type? GetDataAccessType(string name)
         {
             if (Config!.DataAccessTypes!.ContainsKey(name))
@@ -190,10 +233,11 @@ namespace Rampage.Data.Client
         }
 
         /// <summary>
-        /// 
+        /// 按客户端名创建实现客户端实例（动态生成类型，经无参构造快速实例化）
+        /// Create an instance of the named client's dynamically generated implementation type (fast instantiation via the parameterless constructor)
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
+        /// <param name="name">客户端名（DatabaseClientConfig.Name） / The client name (DatabaseClientConfig.Name)</param>
+        /// <returns>新创建的 <see cref="DatabaseClient"/> 实例 / A newly created <see cref="DatabaseClient"/> instance</returns>
         public static DatabaseClient CreateClient(string name)
         {
             Type dcType = GetImplClientType(name);
@@ -203,8 +247,16 @@ namespace Rampage.Data.Client
 
         private static IDbParameterValueHandler? _dbParameterValueHandler;
         /// <summary>
-        /// 
+        /// 全局数据库参数值处理器；未显式设置时懒加载为 <see cref="DefaultDbParameterValueHandler"/>
+        /// Global database parameter value handler; lazily defaults to <see cref="DefaultDbParameterValueHandler"/>
         /// </summary>
+        /// <remarks>
+        /// 可整体替换以自定义参数值转换。注意 <see cref="Rampage.Data.SqlTemplate"/> 在构造时会快照当时的处理器，
+        /// 替换需在创建 SqlTemplate/客户端之前完成才能对后续生成的 SQL 生效。
+        /// Replace it to customize parameter value conversion. Note that <see cref="Rampage.Data.SqlTemplate"/>
+        /// snapshots the handler at construction, so the swap must happen before any SqlTemplate/client is created
+        /// to affect subsequently generated SQL.
+        /// </remarks>
         public static IDbParameterValueHandler DbParameterValueHandler
         {
             get

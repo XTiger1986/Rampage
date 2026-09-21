@@ -13,8 +13,17 @@ namespace Rampage.Data
     public class TableMapping : Attribute
     {
 
+        /// <summary>
+        /// 初始化一个空的映射特性
+        /// Initialize an empty mapping attribute
+        /// </summary>
         public TableMapping() { }
 
+        /// <summary>
+        /// 初始化映射特性并指定数据表名
+        /// Initialize the mapping attribute with a table name
+        /// </summary>
+        /// <param name="tableName">数据表名 / table name</param>
         public TableMapping(string tableName)
         {
             this.TableName = tableName;
@@ -106,10 +115,11 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 按实体属性名获取映射信息
+        /// Get the field mapping by entity property name
         /// </summary>
-        /// <param name="propertyName"></param>
-        /// <returns></returns>
+        /// <param name="propertyName">实体属性名 / entity property name</param>
+        /// <returns>映射信息；未找到时返回 null / the mapping, or null when not found</returns>
         public FieldMapping? GetPropertyMapping(string propertyName)
         {
             if (PropertyMappingDict != null && PropertyMappingDict.ContainsKey(propertyName))
@@ -120,10 +130,11 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 按数据表字段名获取映射信息
+        /// Get the field mapping by table column name
         /// </summary>
-        /// <param name="columnName"></param>
-        /// <returns></returns>
+        /// <param name="columnName">数据表字段名 / table column name</param>
+        /// <returns>映射信息；未找到时返回 null / the mapping, or null when not found</returns>
         public FieldMapping? GetColumnMapping(string columnName)
         {
             if (ColumnMappingDict != null && ColumnMappingDict.ContainsKey(columnName))
@@ -134,8 +145,16 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// Resolve a property or column name to a mapped table column; throws when unknown.
+        /// 将实体属性名或数据表字段名解析为映射的数据表列名，无法解析时抛出异常
+        /// Resolve a property or column name to a mapped table column; throws when unknown
         /// </summary>
+        /// <remarks>
+        /// 先按属性名精确匹配（GetPropertyMapping），未命中时再按字段名忽略大小写匹配。
+        /// 命中的映射若标记了 <see cref="FieldMapping.NotColumn"/>（非表列属性），同样视为无效并抛出异常。
+        /// </remarks>
+        /// <param name="fieldOrProperty">实体属性名或数据表字段名 / property name or column name</param>
+        /// <returns>映射的数据表列名 / the mapped column name</returns>
+        /// <exception cref="SuperException">名称未映射到任何有效表列时抛出 / thrown when the name maps to no valid column</exception>
         public string ResolveColumnName(string fieldOrProperty)
         {
             FieldMapping? fieldMapping = GetPropertyMapping(fieldOrProperty);

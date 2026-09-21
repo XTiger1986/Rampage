@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 namespace Rampage.Scheduling
 {
     /// <summary>
-    /// 内置调度器：按本地时间分钟对齐的后台循环触发 Cron 任务。
-    /// 同一任务上一次执行未结束时跳过本次触发（不排队）；触发前通过 <see cref="IJobLockProvider"/> 获取任务锁，
-    /// 注册分布式锁提供者后可在多实例部署下保证同一任务只在一个实例执行。
+    /// 内置调度器：按本地时间分钟对齐的后台循环触发 Cron 任务。 / Built-in scheduler: a background loop aligned to local-time minute boundaries triggers cron jobs.
+    /// 同一任务上一次执行未结束时跳过本次触发（不排队）；触发前通过 <see cref="IJobLockProvider"/> 获取任务锁， / A trigger is skipped (not queued) while the previous run of the same job is unfinished; before firing, the job lock is acquired via <see cref="IJobLockProvider"/>,
+    /// 注册分布式锁提供者后可在多实例部署下保证同一任务只在一个实例执行。 / so once a distributed lock provider is registered, multi-instance deployments run each job on only one instance.
     /// </summary>
     public sealed class DefaultRampageScheduler : IRampageScheduler
     {
@@ -134,7 +134,7 @@ namespace Rampage.Scheduling
 
         private async Task RunLoopAsync(CancellationToken cancellationToken)
         {
-            // 启动时先执行标记了立即执行的任务
+            // 启动时先执行标记了立即执行的任务 / First run the jobs flagged runImmediately at startup
             foreach (JobEntry job in _jobs.Values)
             {
                 if (job.RunImmediately)
@@ -167,7 +167,7 @@ namespace Rampage.Scheduling
 
         private void TriggerJob(JobEntry job, CancellationToken cancellationToken)
         {
-            // 上一次仍在执行：跳过本次触发
+            // 上一次仍在执行：跳过本次触发 / Previous run still in progress: skip this trigger
             if (Interlocked.CompareExchange(ref job.Running, 1, 0) != 0)
             {
                 return;
@@ -181,7 +181,7 @@ namespace Rampage.Scheduling
                     jobLock = await _lockProvider.TryAcquireAsync(job.Name, expiry, cancellationToken).ConfigureAwait(false);
                     if (jobLock == null)
                     {
-                        // 其它实例正在执行该任务：本实例跳过本次触发
+                        // 其它实例正在执行该任务：本实例跳过本次触发 / Another instance is running this job: this instance skips the trigger
                         return;
                     }
 
@@ -205,7 +205,7 @@ namespace Rampage.Scheduling
                     }
                     catch
                     {
-                        // 锁释放失败由 TTL 兜底
+                        // 锁释放失败由 TTL 兜底 / A failed lock release is covered by the TTL
                     }
                     Volatile.Write(ref job.Running, 0);
                 }

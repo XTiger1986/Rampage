@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace Rampage.Resilience
 {
     /// <summary>
-    /// 内置弹性执行实现：指数退避重试 + 连续失败熔断（半开探测）+ 单次执行超时。
+    /// 内置弹性执行实现：指数退避重试 + 连续失败熔断（半开探测）+ 单次执行超时。 / Built-in resilience implementation: exponential-backoff retry + circuit breaker on consecutive failures (with half-open probing) + per-execution timeout.
     /// </summary>
     public sealed class DefaultResilienceProvider : IResilienceProvider
     {
@@ -59,7 +59,7 @@ namespace Rampage.Resilience
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    // 调用方主动取消：立即上抛，不计失败不重试
+                    // 调用方主动取消：立即上抛，不计失败不重试 / Caller-initiated cancellation: rethrow immediately, neither counting a failure nor retrying
                     throw;
                 }
                 catch (Exception)
@@ -83,7 +83,7 @@ namespace Rampage.Resilience
         }
 
         /// <summary>
-        /// 熔断器状态机：Closed（正常）→ 连续失败达阈值 → Open（拒绝请求）→ 超时后 HalfOpen（放行一次探测）→ 成功回 Closed / 失败回 Open
+        /// 熔断器状态机：Closed（正常）→ 连续失败达阈值 → Open（拒绝请求）→ 超时后 HalfOpen（放行一次探测）→ 成功回 Closed / 失败回 Open / Circuit-breaker state machine: Closed (normal) -&gt; Open (reject requests) after the consecutive-failure threshold -&gt; HalfOpen after the break duration (one probe admitted) -&gt; Closed on success / Open on failure
         /// </summary>
         private sealed class CircuitState
         {
@@ -117,7 +117,7 @@ namespace Rampage.Resilience
                     }
                     if (_consecutiveFailures >= _failureThreshold)
                     {
-                        // 半开：仅放行一个探测请求，其余继续拒绝
+                        // 半开：仅放行一个探测请求，其余继续拒绝 / Half-open: admit exactly one probe request and keep rejecting the rest
                         if (_halfOpenProbeInFlight)
                         {
                             throw new BrokenCircuitException(operationKey, TimeSpan.Zero);

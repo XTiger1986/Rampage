@@ -6,25 +6,49 @@ using System;
 
 namespace Rampage.DatabaseDeployer
 {
+    /// <summary>
+    /// 数据库部署应用程序：交互式选择脚本目录，检测/创建版本表后按版本号逐个执行部署脚本 /
+    /// Database deployer application: interactively selects a script directory, checks/creates the version table,
+    /// then executes pending scripts one by one
+    /// </summary>
     public class DatabaseDeployerApplication : RampageBasicApplication, IRampageApplication
     {
+        /// <summary>脚本服务（自动注入）/ Script service (auto-injected)</summary>
         [Auto]
         protected IScriptService ScriptBo = default!;
+        /// <summary>部署服务（自动注入）/ Deploy service (auto-injected)</summary>
         [Auto]
         protected IDeployService DeployBo = default!;
 
+        /// <summary>
+        /// 初始化服务（当前仅调用基类实现）/ Initializes services (currently only calls the base implementation)
+        /// </summary>
+        /// <param name="args">命令行参数 / Command-line arguments</param>
         public override void InitializeServices(string[] args)
         {
             base.InitializeServices(args);
         }
 
+        /// <summary>
+        /// 应用主流程：先执行基类启动逻辑，再进入部署交互 / Main flow: runs the base startup logic and then the deployment interaction
+        /// </summary>
+        /// <param name="args">命令行参数 / Command-line arguments</param>
         public override void Run(string[] args)
         {
             base.Run(args);
             Deploy();
         }
 
-
+        /// <summary>
+        /// 执行一轮完整的部署交互流程 / Runs one full round of the deployment interaction
+        /// </summary>
+        /// <remarks>
+        /// 流程：列出脚本根目录下的一级目录供选择 → 检测/创建版本表 → 读取当前版本 → 获取版本号更大的脚本并逐个执行
+        /// （任一脚本返回 -500 哨兵值即中断）→ 输出最新版本。结束后询问“是否继续”，输入 Y 则递归重复整轮流程。
+        /// Flow: list script directories for selection → check/create the version table → read the current version →
+        /// execute each newer script (aborting on the -500 sentinel) → print the final version; answering "Y" to the
+        /// "continue?" prompt restarts the whole round recursively.
+        /// </remarks>
         private void Deploy()
         {
             try

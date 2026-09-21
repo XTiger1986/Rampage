@@ -4,19 +4,18 @@ using System;
 namespace Rampage.Configuration
 {
     /// <summary>
-    /// 配置读取器扩展
-    /// configuration extensions
+    /// 配置读取器扩展。/ Configuration reader extensions.
     /// </summary>
     public static class ConfigurationExtensions
     {
         /// <summary>
-        /// 使用路径参数读取指定节点配置值
-        /// Read the configuration data of the specified node using the path parameter
+        /// 使用路径参数读取指定节点配置值：路径按 "." 分割逐级 GetSection，最后一段 GetValue。
+        /// / Read a config node by path: the path is split on "." and walked via GetSection level by level, then GetValue on the last segment.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="configuration"></param>
-        /// <param name="path">node path, for example: database.connection.timeout</param>
-        /// <returns></returns>
+        /// <typeparam name="T">值类型 / value type</typeparam>
+        /// <param name="configuration">配置对象 / the configuration</param>
+        /// <param name="path">节点路径，如 database.connection.timeout / node path, e.g. database.connection.timeout</param>
+        /// <returns>配置值；节点不存在时为 default / the value; default when the node is missing</returns>
         public static T? GetNodeValue<T>(this IConfiguration configuration, string path)
         {
             Type type = typeof(T);
@@ -29,13 +28,13 @@ namespace Rampage.Configuration
         }
 
         /// <summary>
-        /// 使用路径参数读取指定节点配置值
-        /// Read the configuration data of the specified node using the path parameter
+        /// 使用路径参数读取指定节点配置值（同 GetNodeValue&lt;T&gt; 重载，以 Type 参数指定返回类型；单段路径直接 GetValue）。
+        /// / Read a config node by path (same as the GetNodeValue&lt;T&gt; overload with the target type supplied as a Type; single-segment paths go straight to GetValue).
         /// </summary>
-        /// <param name="configuration"></param>
-        /// <param name="path">node path, for example: database.connection.timeout</param>
-        /// <param name="type">return data type</param>
-        /// <returns></returns>
+        /// <param name="configuration">配置对象 / the configuration</param>
+        /// <param name="path">节点路径，如 database.connection.timeout / node path, e.g. database.connection.timeout</param>
+        /// <param name="type">返回值类型 / target type</param>
+        /// <returns>配置值；节点不存在时为 null / the value; null when the node is missing</returns>
         public static object? GetNodeValue(this IConfiguration configuration, string path, Type type)
         {
             string[] nodes = path.Split('.');

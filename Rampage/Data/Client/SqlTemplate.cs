@@ -16,11 +16,37 @@ namespace Rampage.Data
     /// Sql语句生成类
     /// Sql statements Generator
     /// </summary>
+    /// <remarks>
+    /// 按数据库方言生成 CRUD SQL：自增主键回填、分页、字符串包含函数、标识符引号风格等方言差异全部在此处理。
+    /// 防注入三道闸：
+    /// 1) 值一律参数化——Oracle 使用 ":" 前缀，其余数据库使用 "@" 前缀（见 <see cref="FormatParameter"/>）；
+    /// 2) 标识符（表名、列名、排序/分组字段）一律经 <see cref="QuoteIdentifier"/> 强制引号包裹并转义闭合引号，
+    ///    未知数据库类型退化为 <see cref="IsSafeIdentifier"/> 白名单校验；
+    /// 3) 排序字段在 QueryOrders.Set 处还有一层正则校验（仅允许合法标识符或一级限定名）。
+    /// 逃生口：QueryWrapper.Select(fieldsSql)（已标记 Obsolete）与 QueryWrapper.FieldsSql 会把原始 SQL 片段
+    /// 原样拼入 SELECT 子句，不经任何转义——传入不可信输入存在注入风险，务必使用受控白名单。
+    /// Generates CRUD SQL per database dialect: identity backfill, paging, string-contains functions,
+    /// identifier quoting styles and other dialect differences are all handled here. Anti-injection gates:
+    /// (1) all values are parameterized - ":" prefix on Oracle, "@" elsewhere (see <see cref="FormatParameter"/>);
+    /// (2) identifiers (tables, columns, order/group fields) are always quoted with the closing quote escaped via
+    /// <see cref="QuoteIdentifier"/>; unknown database types fall back to the <see cref="IsSafeIdentifier"/> whitelist;
+    /// (3) order fields are additionally regex-validated in QueryOrders.Set (bare identifiers or one-level qualified names only).
+    /// Escape hatch: QueryWrapper.Select(fieldsSql) (Obsolete) and QueryWrapper.FieldsSql splice raw SQL fragments into
+    /// the SELECT clause without any escaping - feeding them untrusted input is an injection risk; use controlled whitelists.
+    /// </remarks>
     public abstract class SqlTemplate
     {
 
+        /// <summary>
+        /// 生成 SQL 失败时使用的异常资源键 / Exception resource key used when SQL generation fails
+        /// </summary>
         public const string EX_KEY_FailedToGenerateSQL = "FailedTo_Generate_SQL";
 
+        /// <summary>
+        /// 以指定数据库类型构造实例，并快照当时的 <see cref="DatabaseFactory.DbParameterValueHandler"/>
+        /// Construct with the specified database type, snapshotting the current <see cref="DatabaseFactory.DbParameterValueHandler"/>
+        /// </summary>
+        /// <param name="databaseType">目标数据库类型 / The target database type</param>
         public SqlTemplate(DatabaseType databaseType)
         {
             DatabaseType = databaseType;
@@ -33,6 +59,9 @@ namespace Rampage.Data
         /// </summary>
         public virtual DatabaseType DatabaseType { get; protected set; }
 
+        /// <summary>
+        /// 构造时快照的参数值处理器 / The parameter value handler snapshotted at construction time
+        /// </summary>
         private IDbParameterValueHandler DbParameterValueHandler
         {
             get;
@@ -43,7 +72,8 @@ namespace Rampage.Data
         /// 查询当前数据库时间的SQL语句
         /// SQL statement to query the current database time
         /// </summary>
-        /// <returns></returns>
+        /// <returns>按方言选择 NOW()/CURRENT_TIMESTAMP/SYSDATE/GETDATE()/datetime('now')，结果列别名 CurrentTime
+        /// NOW()/CURRENT_TIMESTAMP/SYSDATE/GETDATE()/datetime('now') per dialect, aliased as CurrentTime</returns>
         public virtual string GetNowSql()
         {
             switch (DatabaseType)
@@ -64,10 +94,11 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// Format the specified field name as a parameter name
+        /// 把字段名格式化为参数占位符：Oracle 加 ":" 前缀，其余数据库加 "@" 前缀；已带前缀则原样返回
+        /// Format a field name as a parameter placeholder: ":" prefix on Oracle, "@" elsewhere; returned as-is when already prefixed
         /// </summary>
-        /// <param name="fieldName">ProductId</param>
-        /// <returns>For example: @ProductId</returns>
+        /// <param name="fieldName">字段（参数）名，如 ProductId / The field (parameter) name, e.g. ProductId</param>
+        /// <returns>参数占位符，如 @ProductId 或 :ProductId / The parameter placeholder, e.g. @ProductId or :ProductId</returns>
         public virtual string FormatParameter(string fieldName)
         {
             switch (DatabaseType)
@@ -90,13 +121,17 @@ namespace Rampage.Data
 
         /// <summary>
         /// 合法的裸标识符：字母/下划线开头，后接字母、数字、下划线、$、#（允许 Unicode 字母以兼容中文列名）
+        /// Legal bare identifier: starts with a letter/underscore followed by letters, digits, underscore, $, # (Unicode letters allowed for Chinese column names)
         /// </summary>
         private static readonly System.Text.RegularExpressions.Regex SafeIdentifierRegex =
             new System.Text.RegularExpressions.Regex(@"^[\p{L}_][\p{L}\p{N}_$#]*$", System.Text.RegularExpressions.RegexOptions.Compiled);
 
         /// <summary>
-        /// 是否为无需引号包裹即可安全拼接的标识符
+        /// 是否为无需引号包裹即可安全拼接的标识符（白名单校验：非空、长度不超过 128 且匹配 <see cref="SafeIdentifierRegex"/>）
+        /// Whether the identifier can be safely spliced without quoting (whitelist: non-empty, length up to 128, and matching <see cref="SafeIdentifierRegex"/>)
         /// </summary>
+        /// <param name="identifier">待校验标识符 / The identifier to check</param>
+        /// <returns>安全返回 true；null、空串或含特殊字符返回 false / true when safe; false for null, empty, or special characters</returns>
         public static bool IsSafeIdentifier(string? identifier)
         {
             return !string.IsNullOrEmpty(identifier) && identifier.Length <= 128 && SafeIdentifierRegex.IsMatch(identifier);
@@ -104,7 +139,10 @@ namespace Rampage.Data
 
         /// <summary>
         /// 取得当前数据库的标识符引号（open/close）；不支持引号的数据库返回 null
+        /// Get the identifier quote characters (open/close) of the current database; null when the database has none
         /// </summary>
+        /// <returns>MySQL 为 ``；PostgreSQL/Oracle/Sqlite 为 ""；SqlServer 为 []；其它类型返回 null
+        /// Backticks for MySQL; double quotes for PostgreSQL/Oracle/Sqlite; brackets for SqlServer; null otherwise</returns>
         protected virtual (char Open, char Close)? GetIdentifierQuotes()
         {
             switch (DatabaseType)
@@ -124,9 +162,19 @@ namespace Rampage.Data
 
         /// <summary>
         /// 安全地格式化单个标识符：始终引号包裹并转义内部的闭合引号，使任何输入都无法逃逸出标识符位置。
-        /// 支持 "schema.table" / "alias.column" 形式（各段分别处理）；已带引号的输入会被剥离后重新转义，
-        /// 因此形如 `a`, (SELECT ...) ` 的“伪引号”注入不再能原样透传。
+        /// Safely format a single identifier: always quoted with the closing quote escaped, so no input can escape the identifier position.
         /// </summary>
+        /// <remarks>
+        /// 支持 "schema.table" / "alias.column" 形式（各段分别处理）；已带引号的输入会被剥离后重新转义，
+        /// 因此形如 `a`, (SELECT ...) ` 的“伪引号”注入不再能原样透传。含 \0、\r、\n 等控制字符时直接拒绝；
+        /// 未知数据库类型（无引号）只放行 <see cref="IsSafeIdentifier"/> 白名单内的裸标识符。
+        /// Supports "schema.table" / "alias.column" forms (each segment handled separately); already-quoted input is
+        /// unquoted then re-escaped, so pseudo-quote injection such as `a`, (SELECT ...) ` can no longer pass through
+        /// verbatim. Control characters (\0, \r, \n) are rejected; unknown database types (no quotes) only allow
+        /// bare identifiers whitelisted by <see cref="IsSafeIdentifier"/>.
+        /// </remarks>
+        /// <param name="identifier">原始标识符 / The raw identifier</param>
+        /// <returns>引号包裹并转义后的标识符 / The quoted and escaped identifier</returns>
         protected virtual string QuoteIdentifier(string identifier)
         {
             if (string.IsNullOrWhiteSpace(identifier))
@@ -180,8 +228,8 @@ namespace Rampage.Data
         /// 格式化字段名（始终引号包裹并转义，防止排序字段/列名注入）
         /// Format field name (always quoted and escaped to prevent identifier injection)
         /// </summary>
-        /// <param name="columnName">For example: data</param>
-        /// <returns>For example: `data`</returns>
+        /// <param name="columnName">列名，如 data / The column name, e.g. data</param>
+        /// <returns>引号包裹的列名，如 `data` / The quoted column name, e.g. `data`</returns>
         public virtual string FormatColumn(string columnName)
         {
             return QuoteIdentifier(columnName);
@@ -191,19 +239,23 @@ namespace Rampage.Data
         /// 格式化表名（始终引号包裹并转义）
         /// Format table name (always quoted and escaped)
         /// </summary>
-        /// <param name="tableName">For example: Product</param>
-        /// <returns>For example: `Product`</returns>
+        /// <param name="tableName">表名，如 Product / The table name, e.g. Product</param>
+        /// <returns>引号包裹的表名，如 `Product` / The quoted table name, e.g. `Product`</returns>
         public virtual string FormatTable(string tableName)
         {
             return QuoteIdentifier(tableName);
         }
 
         /// <summary>
-        /// 
+        /// 构造 SELECT 字段列表：列名引号包裹并以属性名作为别名（便于结果集按属性名映射）；
+        /// 未指定字段或映射无列时返回 "*"
+        /// Build the SELECT field list: columns are quoted and aliased by property name (for result mapping);
+        /// returns "*" when no fields are specified or the mapping has no columns
         /// </summary>
-        /// <param name="fields"></param>
-        /// <param name="mapping"></param>
-        /// <returns>For example: `id` `Id`, `name` `Name`, `product_id` ProductId</returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="fields">要查询的字段；null 或空表示全部字段 / Fields to select; null or empty means all columns</param>
+        /// <param name="mapping">表映射；null 时从 ModelSchemaStore 解析 / Table mapping; resolved from ModelSchemaStore when null</param>
+        /// <returns>例如：`id` `Id`, `name` `Name`, `product_id` ProductId / e.g. `id` `Id`, `name` `Name`, `product_id` ProductId</returns>
         public virtual string BuildQueryFieldsString<M>(QueryFields? fields, TableMapping? mapping = null)
             where M : class
         {
@@ -237,10 +289,11 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造 GROUP BY 字段列表（列名经 FormatColumn 引号包裹防注入）
+        /// Build the GROUP BY column list (columns quoted via FormatColumn against injection)
         /// </summary>
-        /// <param name="groupByList"></param>
-        /// <returns>For example: `category_id`, `status`</returns>
+        /// <param name="groupByList">分组列名列表 / The list of group-by column names</param>
+        /// <returns>例如：`category_id`, `status`；空列表返回空字符串 / e.g. `category_id`, `status`; empty string for an empty list</returns>
         public virtual string BuildGroupByString(List<string> groupByList)
         {
             if (groupByList.Any())
@@ -259,10 +312,11 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造 ORDER BY 子句内容（排序字段已在 QueryOrders.Set 处经正则校验，此处再经 FormatColumn 引号包裹双重防护）
+        /// Build the ORDER BY clause (order fields are regex-validated in QueryOrders.Set and additionally quoted by FormatColumn)
         /// </summary>
-        /// <param name="orders"></param>
-        /// <returns>For example: `count` desc, `create_time` desc</returns>
+        /// <param name="orders">排序规则 / The order rules</param>
+        /// <returns>例如：`count` desc, `create_time` desc；无排序返回空字符串 / e.g. `count` desc, `create_time` desc; empty string when no orders</returns>
         public virtual string BuildOrderString(QueryOrders? orders)
         {
             if (orders == null || orders.Orders == null || orders.Orders.Count == 0)
@@ -283,13 +337,20 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 把 Lambda 条件包装器解析为参数化 WHERE 条件，并把参数写入 <paramref name="sqlInfo"/>
+        /// Parse a lambda condition wrapper into a parameterized WHERE condition and add parameters to <paramref name="sqlInfo"/>
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="wrapper"></param>
-        /// <param name="sqlInfo"></param>
-        /// <param name="mapping"></param>
-        /// <returns></returns>
+        /// <remarks>
+        /// 条件值全部经 <see cref="DatabaseFactory.DbParameterValueHandler"/> 处理后以参数形式加入；
+        /// 与 SET 子句同列重名时会自动改用唯一参数名（见 AddConditionParameterAvoidCollision）。
+        /// All condition values go through <see cref="DatabaseFactory.DbParameterValueHandler"/> before being added
+        /// as parameters; names colliding with SET parameters are automatically renamed (see AddConditionParameterAvoidCollision).
+        /// </remarks>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="wrapper">Lambda 条件包装器 / The lambda condition wrapper</param>
+        /// <param name="sqlInfo">接收参数的 SQL 信息对象 / The SQL info object receiving parameters</param>
+        /// <param name="mapping">表映射；null 时从模型解析 / Table mapping; resolved from the model when null</param>
+        /// <returns>条件 SQL 片段（不含 WHERE 关键字）；无条件时返回 null / The condition fragment (without the WHERE keyword); null when the wrapper has no condition</returns>
         public virtual string? BuildConditionString<M>(LambdaWrapper<M> wrapper, SqlInfo sqlInfo, TableMapping? mapping = null)
             where M : class
         {
@@ -319,13 +380,20 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 把 Filter 条件包装器解析为参数化 WHERE 条件，并把参数写入 <paramref name="sqlInfo"/>
+        /// Parse a filter condition wrapper into a parameterized WHERE condition and add parameters to <paramref name="sqlInfo"/>
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="wrapper"></param>
-        /// <param name="sqlInfo"></param>
-        /// <param name="mapping"></param>
-        /// <returns></returns>
+        /// <remarks>
+        /// 条件值全部经 <see cref="DatabaseFactory.DbParameterValueHandler"/> 处理后以参数形式加入；
+        /// 与 SET 子句同列重名时会自动改用唯一参数名（见 AddConditionParameterAvoidCollision）。
+        /// All condition values go through <see cref="DatabaseFactory.DbParameterValueHandler"/> before being added
+        /// as parameters; names colliding with SET parameters are automatically renamed (see AddConditionParameterAvoidCollision).
+        /// </remarks>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="wrapper">Filter 条件包装器 / The filter condition wrapper</param>
+        /// <param name="sqlInfo">接收参数的 SQL 信息对象 / The SQL info object receiving parameters</param>
+        /// <param name="mapping">表映射；null 时从模型解析 / Table mapping; resolved from the model when null</param>
+        /// <returns>条件 SQL 片段（不含 WHERE 关键字）；无条件时返回 null / The condition fragment (without the WHERE keyword); null when the wrapper has no condition</returns>
         public virtual string? BuildConditionString<M>(FilterWrapper<M> wrapper, SqlInfo sqlInfo, TableMapping? mapping = null) where M : class
         {
             mapping = mapping ?? ModelSchemaStore.GetModelMapping<M>()!;
@@ -355,6 +423,8 @@ namespace Rampage.Data
         /// <summary>
         /// UPDATE SET 与 WHERE 同时引用同列时（如 CAS：SET power=@power WHERE power=@power），
         /// 条件参数改用唯一名并回写 SQL，避免 Dictionary 重复键。
+        /// When UPDATE SET and WHERE reference the same column (e.g. CAS: SET power=@power WHERE power=@power),
+        /// rename the condition parameter to a unique name and rewrite the SQL to avoid duplicate dictionary keys.
         /// </summary>
         private string? AddConditionParameterAvoidCollision(SqlInfo sqlInfo, string? conditionSql, string key, object? value)
         {
@@ -376,7 +446,10 @@ namespace Rampage.Data
             return conditionSql;
         }
 
-        /// <summary>替换参数占位符，避免 @power 误伤 @power_score。</summary>
+        /// <summary>
+        /// 替换参数占位符，词边界匹配，避免替换 @power 时误伤 @power_score。
+        /// Replace a parameter placeholder with word-boundary matching so replacing @power does not hit @power_score.
+        /// </summary>
         private static string ReplaceSqlParameterRef(string sql, string oldRef, string newRef)
         {
             if (string.IsNullOrEmpty(sql) || string.Equals(oldRef, newRef, StringComparison.Ordinal))
@@ -391,13 +464,14 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造主键等值条件（主键值经属性读取后作为参数加入 sqlInfo）
+        /// Build the primary-key equality condition (the key value read from the model is added to sqlInfo as a parameter)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="model"></param>
-        /// <param name="sqlInfo"></param>
-        /// <param name="mapping"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="model">携带主键值的模型实例 / The model instance carrying the primary key value</param>
+        /// <param name="sqlInfo">接收主键参数的 SQL 信息对象 / The SQL info object receiving the key parameter</param>
+        /// <param name="mapping">表映射；null 时从模型解析 / Table mapping; resolved from the model when null</param>
+        /// <returns>例如 `id` = @id / e.g. `id` = @id</returns>
         public virtual string BuildIdCondition<M>(M model, SqlInfo sqlInfo, TableMapping? mapping = null) where M : class
         {
             mapping = mapping ?? ModelSchemaStore.GetModelMapping<M>()!;
@@ -417,8 +491,17 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// Build a parameterized "search string contained in column" condition.
+        /// 构造“列包含指定字符串”的参数化条件：把字符串作为参数加入 sqlInfo 后委托
+        /// <see cref="BuildStringInColumnConditionWithParameter"/> 生成（字面值不内嵌）
+        /// Build a parameterized "column contains string" condition: adds the string as a parameter to sqlInfo,
+        /// then delegates to <see cref="BuildStringInColumnConditionWithParameter"/> (no literal embedding)
         /// </summary>
+        /// <param name="str">要查找的字符串 / The string to search for</param>
+        /// <param name="columnName">目标列名 / The target column name</param>
+        /// <param name="sqlInfo">接收参数的 SQL 信息对象 / The SQL info object receiving the parameter</param>
+        /// <param name="paramName">参数名，默认 SearchStr / The parameter name, SearchStr by default</param>
+        /// <param name="ignoreCase">是否忽略大小写（LOWER 包裹两侧） / Whether to ignore case (wraps both sides with LOWER)</param>
+        /// <returns>条件 SQL 片段 / The condition SQL fragment</returns>
         public virtual string BuildStringInColumnCondition(string str, string columnName, SqlInfo sqlInfo, string paramName = "SearchStr", bool ignoreCase = false)
         {
             if (!sqlInfo.ParametersInitialized)
@@ -430,8 +513,19 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// Build condition using an already-formatted parameter reference (no literal embedding).
+        /// 使用已格式化的参数占位符构造“列包含字符串”条件（不内嵌字面值）
+        /// Build the "column contains string" condition from an already-formatted parameter reference (no literal embedding)
         /// </summary>
+        /// <remarks>
+        /// 方言差异：Oracle/MySQL/Sqlite 用 INSTR(列, 参数)，SqlServer 用 CHARINDEX(参数, 列)（注意参数顺序相反），
+        /// PostgreSQL 用 POSITION(参数 IN 列)。
+        /// Dialects: INSTR(column, param) on Oracle/MySQL/Sqlite, CHARINDEX(param, column) on SqlServer
+        /// (note the reversed argument order), POSITION(param IN column) on PostgreSQL.
+        /// </remarks>
+        /// <param name="formattedParam">已格式化的参数占位符，如 @SearchStr / The formatted parameter placeholder, e.g. @SearchStr</param>
+        /// <param name="columnName">目标列名 / The target column name</param>
+        /// <param name="ignoreCase">是否忽略大小写 / Whether to ignore case</param>
+        /// <returns>条件 SQL 片段 / The condition SQL fragment</returns>
         public virtual string BuildStringInColumnConditionWithParameter(string formattedParam, string columnName, bool ignoreCase = false)
         {
             string safeColumn = FormatColumn(columnName);
@@ -467,8 +561,16 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// Build a parameterized IN condition for the given value list.
+        /// 构造列 IN (值列表) 的参数化条件（每个值一个独立参数，绝不内嵌字面值）
+        /// Build a parameterized column IN (value list) condition (one parameter per value, never inlined literals)
         /// </summary>
+        /// <remarks>列表为 null 或空时返回恒假条件 "1 = 2"，避免生成非法的空 IN 子句
+        /// Returns the always-false "1 = 2" for a null/empty list to avoid an invalid empty IN clause</remarks>
+        /// <param name="list">值列表 / The value list</param>
+        /// <param name="columnName">目标列名 / The target column name</param>
+        /// <param name="sqlInfo">接收 IN 参数的 SQL 信息对象 / The SQL info object receiving the IN parameters</param>
+        /// <param name="paramPrefix">参数名前缀，默认 InList / The parameter name prefix, InList by default</param>
+        /// <returns>例如 `id` IN (@InList_0, @InList_1)；空列表为 1 = 2 / e.g. `id` IN (@InList_0, @InList_1); "1 = 2" for an empty list</returns>
         public virtual string BuildColumnInListCondition(IEnumerable list, string columnName, SqlInfo sqlInfo, string paramPrefix = "InList")
         {
             string safeColumnName = FormatColumn(columnName);
@@ -481,10 +583,23 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 按 QueryOptions 组装完整 SELECT 语句（表名经引号包裹）
+        /// Assemble a complete SELECT statement from QueryOptions (table name quoted)
         /// </summary>
-        /// <param name="options"></param>
-        /// <returns></returns>
+        /// <remarks>
+        /// 分页方言：SqlServer——带 Offset 时用 ROW_NUMBER() OVER (ORDER BY ...) 子查询（无 OrderBy 时以
+        /// (SELECT NULL) 占位），仅 Limit 时用 TOP；Oracle 12c+ 用 OFFSET/FETCH；PostgreSQL 用 LIMIT/OFFSET；
+        /// MySQL/Sqlite 用 LIMIT offset,size。
+        /// 注意：options.Select/Condition/GroupBy/OrderBy 均为原始 SQL 片段，原样拼接、不做任何转义，
+        /// 属于原始 SQL 逃生口——严禁拼接不可信输入（框架内部生成的 Condition 已参数化）。
+        /// Paging dialects: SqlServer - ROW_NUMBER() OVER (ORDER BY ...) subquery when Offset is set
+        /// ((SELECT NULL) placeholder without OrderBy), TOP with Limit only; Oracle 12c+ - OFFSET/FETCH;
+        /// PostgreSQL - LIMIT/OFFSET; MySQL/Sqlite - LIMIT offset,size.
+        /// Warning: options.Select/Condition/GroupBy/OrderBy are raw SQL fragments spliced verbatim without escaping -
+        /// a raw SQL escape hatch; never splice untrusted input (framework-generated Condition is parameterized).
+        /// </remarks>
+        /// <param name="options">查询选项 / The query options</param>
+        /// <returns>完整 SELECT 语句（含结尾分号） / The complete SELECT statement (with trailing semicolon)</returns>
         public virtual string BuildSqlOfSelect(QueryOptions options)
         {
             string tableName = options.TableName!;
@@ -570,12 +685,13 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 把泛型查询选项绑定到模型表名后组装 SELECT 语句
+        /// Bind generic query options to the model's table name and assemble the SELECT statement
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="options"></param>
-        /// <param name="mapping"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="options">查询选项（TableName 将被映射表名覆盖） / The query options (TableName is overridden by the mapped table)</param>
+        /// <param name="mapping">表映射；null 时从模型解析 / Table mapping; resolved from the model when null</param>
+        /// <returns>完整 SELECT 语句 / The complete SELECT statement</returns>
         public virtual string BuildSqlOfSelect<M>(QueryOptions<M> options, TableMapping? mapping = null) where M : class
         {
             mapping = mapping ?? ModelSchemaStore.GetModelMapping<M>()!;
@@ -595,12 +711,13 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 按 Filter 条件构造 SELECT 语句（可选分页），等价于 <see cref="BuildSelectSql{M}(QueryWrapper{M}, PagerInfo)"/>
+        /// Build a SELECT statement from a filter wrapper (optionally paged); equivalent to <see cref="BuildSelectSql{M}(QueryWrapper{M}, PagerInfo)"/>
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="wrapper"></param>
-        /// <param name="pagerInfo">pager info if select page list</param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="wrapper">Filter 条件包装器；null 表示无条件 / The filter wrapper; null means no condition</param>
+        /// <param name="pagerInfo">分页信息，null 表示不分页 / The pager info if selecting a page list</param>
+        /// <returns>含 SQL 与参数的 SqlInfo / The SqlInfo carrying SQL and parameters</returns>
         public virtual SqlInfo BuildSqlOfSelect<M>(FilterWrapper<M>? wrapper = null, PagerInfo? pagerInfo = null) 
             where M : class
         {
@@ -608,12 +725,13 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 按 Lambda 条件构造 SELECT 语句（可选分页），等价于 <see cref="BuildSelectSql{M}(QueryWrapper{M}, PagerInfo)"/>
+        /// Build a SELECT statement from a lambda wrapper (optionally paged); equivalent to <see cref="BuildSelectSql{M}(QueryWrapper{M}, PagerInfo)"/>
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="wrapper"></param>
-        /// <param name="pagerInfo">pager info if select page list</param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="wrapper">Lambda 条件包装器 / The lambda wrapper</param>
+        /// <param name="pagerInfo">分页信息，null 表示不分页 / The pager info if selecting a page list</param>
+        /// <returns>含 SQL 与参数的 SqlInfo / The SqlInfo carrying SQL and parameters</returns>
         public virtual SqlInfo BuildSqlOfSelect<M>(LambdaWrapper<M> wrapper, PagerInfo? pagerInfo = null)
             where M : class
         {
@@ -621,12 +739,24 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 通用 SELECT 构造入口：处理字段选择、分页、条件、分组与排序
+        /// Central SELECT builder handling field selection, paging, conditions, grouping and ordering
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="wrapper"></param>
-        /// <param name="pagerInfo"></param>
-        /// <returns></returns>
+        /// <remarks>
+        /// 字段优先级：wrapper.FieldsSql（原始 SQL 片段，未经转义——注入逃生口）优先；未设置时按 Fields 生成引号包裹的字段列表。
+        /// 分页：Offset = (PageIndex - 1) * PageSize，Limit = PageSize；未分页时取 wrapper.Limit。
+        /// 追加统计：分页且 pagerInfo.RecordCount 为 null 时，在同一 SqlInfo 中追加一条 COUNT(1) 查询
+        /// （结果列别名 <see cref="DatabaseClient.RECORD_COUNT_RESULT_COLUMN"/>），供执行层一次往返回填总数。
+        /// Fields priority: wrapper.FieldsSql (a raw, unescaped SQL fragment - the injection escape hatch) wins;
+        /// otherwise a quoted field list is generated from Fields. Paging: Offset = (PageIndex - 1) * PageSize,
+        /// Limit = PageSize; without paging, wrapper.Limit applies. When paging with a null RecordCount, a COUNT(1)
+        /// query (aliased <see cref="DatabaseClient.RECORD_COUNT_RESULT_COLUMN"/>) is appended to the same SqlInfo
+        /// so the executor can fill the total in one round trip.
+        /// </remarks>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="wrapper">查询包装器；null 表示查询全表全部列 / The query wrapper; null selects all columns of the whole table</param>
+        /// <param name="pagerInfo">分页信息，null 表示不分页 / The pager info; null means no paging</param>
+        /// <returns>含 SQL（可能含追加的 COUNT 语句）与参数的 SqlInfo / The SqlInfo carrying the SQL (possibly with an appended COUNT statement) and parameters</returns>
         public virtual SqlInfo BuildSelectSql<M>(QueryWrapper<M>? wrapper = null, PagerInfo? pagerInfo = null)
             where M : class
         {
@@ -710,12 +840,13 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按主键查询单条的 SELECT 语句（主键值参数化，Limit=1）
+        /// Build the SELECT statement for one row by primary key (key parameterized, Limit = 1)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="key"></param>
-        /// <param name="resultFields"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="key">主键值 / The primary key value</param>
+        /// <param name="resultFields">返回字段；null 表示全部列 / Result fields; null means all columns</param>
+        /// <returns>含 SQL 与主键参数的 SqlInfo / The SqlInfo carrying SQL and the key parameter</returns>
         public virtual SqlInfo BuildSqlOfSelectById<M>(object key, QueryFields? resultFields = null)
             where M : class
         {
@@ -741,12 +872,13 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按主键值列表批量查询的 SELECT 语句（IN 条件全参数化）
+        /// Build the SELECT statement for a batch query by primary key list (fully parameterized IN condition)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="keyList"></param>
-        /// <param name="resultFields"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="keyList">主键值列表 / The primary key values</param>
+        /// <param name="resultFields">返回字段；null 表示全部列 / Result fields; null means all columns</param>
+        /// <returns>含 SQL 与 IN 参数的 SqlInfo / The SqlInfo carrying SQL and the IN parameters</returns>
         public virtual SqlInfo BuildSqlOfSelectByIds<M>(IEnumerable keyList, QueryFields? resultFields = null)
             where M : class
         {
@@ -767,15 +899,29 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造单条 INSERT 语句（全部列值参数化，并按方言处理自增主键回填）
+        /// Build a single INSERT statement (all column values parameterized, with dialect-specific identity backfill)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="model"></param>
+        /// <remarks>
+        /// 自增主键回填方言：SqlServer 用 SELECT @@IDENTITY（insertId=true 时包裹 SET IDENTITY_INSERT ON/OFF）；
+        /// MySQL 用 SELECT LAST_INSERT_ID()；Sqlite 用 SELECT last_insert_rowid()（强制插自增列时值置 NULL）；
+        /// PostgreSQL 用 RETURNING 主键列（insertId=true 时改为 SELECT setval 校正序列）；
+        /// Oracle 用 RETURNING 主键列 INTO :RETURNING_ID。
+        /// 需要回填时置 sqlInfo.IsAutoIncrement = true 并记录 AutoIncrementInfo，由执行层读取回填值。
+        /// Identity backfill per dialect: SqlServer appends SELECT @@IDENTITY (wrapped in SET IDENTITY_INSERT ON/OFF
+        /// when insertId=true); MySQL appends SELECT LAST_INSERT_ID(); Sqlite appends SELECT last_insert_rowid()
+        /// (forcing the auto-increment column to NULL when inserted); PostgreSQL appends RETURNING pk (switched to a
+        /// SELECT setval sequence fix-up when insertId=true); Oracle appends RETURNING pk INTO :RETURNING_ID.
+        /// When backfill is needed, sqlInfo.IsAutoIncrement is set with AutoIncrementInfo recorded for the executor.
+        /// </remarks>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="model">要插入的模型实例 / The model instance to insert</param>
         /// <param name="insertId">
-        /// 指定是否插入自增长主键 
+        /// 指定是否插入自增长主键
         /// Specify whether to force the insertion of an auto-increment primary key
         /// </param>
-        /// <returns></returns>
+        /// <returns>含 SQL 与列参数的 SqlInfo；无有效列时抛出 EX_KEY_FailedToGenerateSQL
+        /// The SqlInfo carrying SQL and column parameters; throws EX_KEY_FailedToGenerateSQL when no column applies</returns>
         public virtual SqlInfo BuildSqlOfInsert<M>(M model, bool insertId)
             where M : class
         {
@@ -913,15 +1059,25 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造批量 INSERT 语句：每行生成一条独立 INSERT，参数名加 "_行号" 后缀避免跨行冲突；不回填自增值
+        /// Build batch INSERT statements: one INSERT per row, parameter names suffixed with "_rowIndex" to avoid
+        /// cross-row collisions; auto-increment values are not backfilled
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="list"></param>
+        /// <remarks>
+        /// PostgreSQL 无论是否强制插入自增主键，只要存在自增列就在末尾追加 SELECT setval 校正序列；
+        /// Sqlite 强制插自增列时值置 NULL；其余方言行为与单条插入一致但均不追加取回自增值的语句。
+        /// On PostgreSQL, a SELECT setval sequence fix-up is appended whenever an auto-increment column exists
+        /// (regardless of insertId); on Sqlite the auto-increment column value is forced to NULL; other dialects
+        /// behave like the single-row insert but never append identity-retrieval statements.
+        /// </remarks>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="list">要插入的模型列表 / The list of model instances to insert</param>
         /// <param name="insertId">
-        /// 指定是否插入自增长主键 
+        /// 指定是否插入自增长主键
         /// Specify whether to force the insertion of an auto-increment primary key
         /// </param>
-        /// <returns></returns>
+        /// <returns>含逐行 INSERT 语句与参数的 SqlInfo；空列表抛出 EX_KEY_FailedToGenerateSQL
+        /// The SqlInfo carrying per-row INSERT statements and parameters; throws EX_KEY_FailedToGenerateSQL for an empty list</returns>
         public virtual SqlInfo BuildSqlOfInsert<M>(IEnumerable<M> list, bool insertId)
             where M : class
         {
@@ -1002,12 +1158,13 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按主键更新单个模型的 UPDATE 语句（以模型当前属性值作为 SET 值，全部参数化）
+        /// Build an UPDATE by primary key from a model instance (SET values taken from current property values, all parameterized)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="model"></param>
-        /// <param name="updateFields">Specify the fields to be update</param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="model">携带新值与主键值的模型实例 / The model instance carrying new values and the primary key</param>
+        /// <param name="updateFields">Specify the fields to be update / 要更新的字段；null 表示除主键外全部列</param>
+        /// <returns>含 SQL 与参数的 SqlInfo / The SqlInfo carrying SQL and parameters</returns>
         public virtual SqlInfo BuildSqlOfUpdateById<M>(M model, QueryFields? updateFields = null)
             where M : class
         {
@@ -1022,12 +1179,13 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按主键更新的 UPDATE 语句（字段名与值来自 UpdateFields 字典，全部参数化）
+        /// Build an UPDATE by primary key from an UpdateFields dictionary (fields and values fully parameterized)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="updateFields">Specify the fields to be update</param>
-        /// <param name="id"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="updateFields">Specify the fields to be update / 键为列名、值为新值的更新字段字典</param>
+        /// <param name="id">主键值 / The primary key value</param>
+        /// <returns>含 SQL 与参数的 SqlInfo / The SqlInfo carrying SQL and parameters</returns>
         public virtual SqlInfo BuildSqlOfUpdateById<M>(UpdateFields updateFields, object id)
             where M : class
         {
@@ -1046,12 +1204,18 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造批量 UPDATE：每个模型一条按主键更新的语句，参数名加 "_行号" 后缀避免跨行冲突
+        /// Build batch UPDATE statements: one UPDATE-by-pk per model, parameter names suffixed with "_rowIndex"
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="list"></param>
-        /// <param name="updateFields">Specify the fields to be update</param>
-        /// <returns></returns>
+        /// <remarks>列表为空或无有效更新列（仅主键）时返回空 SqlInfo（Sql 为空字符串），不产生任何语句；
+        /// 主键字段本身只出现在 WHERE 中，不会被更新。
+        /// Returns an empty SqlInfo (blank Sql) for an empty list or when no updatable column applies
+        /// (primary key only); the primary key itself appears only in WHERE and is never updated.
+        /// </remarks>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="list">要更新的模型列表 / The list of model instances to update</param>
+        /// <param name="updateFields">Specify the fields to be update / 要更新的字段；null 表示除主键外全部列</param>
+        /// <returns>含逐行 UPDATE 语句与参数的 SqlInfo / The SqlInfo carrying per-row UPDATE statements and parameters</returns>
         public virtual SqlInfo BuildSqlOfUpdate<M>(IEnumerable<M> list, QueryFields? updateFields = null)
             where M : class
         {
@@ -1114,13 +1278,14 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按 Lambda 条件更新的 UPDATE 语句（SET 值取自模型属性，全部参数化）
+        /// Build an UPDATE with a lambda condition (SET values taken from model properties, all parameterized)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="model"></param>
-        /// <param name="wrapper"></param>
-        /// <param name="updateFields">Specify the fields to be update</param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="model">携带新值的模型实例（主键不参与 SET） / The model instance carrying new values (pk excluded from SET)</param>
+        /// <param name="wrapper">Lambda 条件包装器 / The lambda condition wrapper</param>
+        /// <param name="updateFields">Specify the fields to be update / 要更新的字段；null 表示除主键外全部列</param>
+        /// <returns>含 SQL 与参数的 SqlInfo / The SqlInfo carrying SQL and parameters</returns>
         public virtual SqlInfo BuildSqlOfUpdate<M>(M model, LambdaWrapper<M> wrapper, QueryFields? updateFields = null)
             where M : class
         {
@@ -1136,12 +1301,14 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按 Lambda 条件更新的 UPDATE 语句（字段与值来自 UpdateFields 字典）
+        /// Build an UPDATE with a lambda condition from an UpdateFields dictionary
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="wrapper"></param>
-        /// <param name="updateFields">Specify the fields to be update</param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="updateFields">Specify the fields to be update / 键为列名、值为新值的更新字段字典（不能为空）</param>
+        /// <param name="wrapper">Lambda 条件包装器 / The lambda condition wrapper</param>
+        /// <returns>含 SQL 与参数的 SqlInfo；字段字典为空时抛出无效参数异常
+        /// The SqlInfo carrying SQL and parameters; throws for an empty field dictionary</returns>
         public virtual SqlInfo BuildSqlOfUpdate<M>(UpdateFields updateFields, LambdaWrapper<M> wrapper)
             where M : class
         {
@@ -1162,13 +1329,14 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按 Filter 条件更新的 UPDATE 语句（SET 值取自模型属性，全部参数化）
+        /// Build an UPDATE with a filter condition (SET values taken from model properties, all parameterized)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="model"></param>
-        /// <param name="wrapper"></param>
-        /// <param name="updateFields">Specify the fields to be update</param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="model">携带新值的模型实例（主键不参与 SET） / The model instance carrying new values (pk excluded from SET)</param>
+        /// <param name="wrapper">Filter 条件包装器 / The filter condition wrapper</param>
+        /// <param name="updateFields">Specify the fields to be update / 要更新的字段；null 表示除主键外全部列</param>
+        /// <returns>含 SQL 与参数的 SqlInfo / The SqlInfo carrying SQL and parameters</returns>
         public virtual SqlInfo BuildSqlOfUpdate<M>(M model, FilterWrapper<M> wrapper, QueryFields? updateFields = null)
             where M : class
         {
@@ -1184,12 +1352,14 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按 Filter 条件更新的 UPDATE 语句（字段与值来自 UpdateFields 字典）
+        /// Build an UPDATE with a filter condition from an UpdateFields dictionary
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="wrapper"></param>
-        /// <param name="updateFields">Specify the fields to be update</param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="updateFields">Specify the fields to be update / 键为列名、值为新值的更新字段字典（不能为空）</param>
+        /// <param name="wrapper">Filter 条件包装器 / The filter condition wrapper</param>
+        /// <returns>含 SQL 与参数的 SqlInfo；字段字典为空时抛出无效参数异常
+        /// The SqlInfo carrying SQL and parameters; throws for an empty field dictionary</returns>
         public virtual SqlInfo BuildSqlOfUpdate<M>(UpdateFields updateFields, FilterWrapper<M> wrapper)
             where M : class
         {
@@ -1210,11 +1380,12 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按 Lambda 条件删除的 DELETE 语句（条件参数化）
+        /// Build a DELETE with a lambda condition (condition parameterized)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="wrapper"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="wrapper">Lambda 条件包装器；无条件时将删除全表 / The lambda wrapper; no condition deletes the whole table</param>
+        /// <returns>含 SQL 与参数的 SqlInfo / The SqlInfo carrying SQL and parameters</returns>
         public virtual SqlInfo BuildSqlOfDelete<M>(LambdaWrapper<M> wrapper)
             where M : class
         {
@@ -1230,11 +1401,12 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按 Filter 条件删除的 DELETE 语句（条件参数化）
+        /// Build a DELETE with a filter condition (condition parameterized)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="wrapper"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="wrapper">Filter 条件包装器；无条件时将删除全表 / The filter wrapper; no condition deletes the whole table</param>
+        /// <returns>含 SQL 与参数的 SqlInfo / The SqlInfo carrying SQL and parameters</returns>
         public virtual SqlInfo BuildSqlOfDelete<M>(FilterWrapper<M> wrapper)
             where M : class
         {
@@ -1250,11 +1422,12 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按主键删除单条的 DELETE 语句（主键值参数化）
+        /// Build a DELETE for one row by primary key (key parameterized)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="key"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="key">主键值 / The primary key value</param>
+        /// <returns>含 SQL 与主键参数的 SqlInfo / The SqlInfo carrying SQL and the key parameter</returns>
         public virtual SqlInfo BuildSqlOfDelete<M>(object key)
             where M : class
         {
@@ -1275,11 +1448,12 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按主键值列表批量删除的 DELETE 语句（IN 条件全参数化）
+        /// Build a batch DELETE by primary key list (fully parameterized IN condition)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="keyList"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="keyList">主键值列表 / The primary key values</param>
+        /// <returns>含 SQL 与 IN 参数的 SqlInfo / The SqlInfo carrying SQL and the IN parameters</returns>
         public virtual SqlInfo BuildSqlOfDelete<M>(IEnumerable keyList)
             where M : class
         {
@@ -1294,11 +1468,12 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按 Lambda 条件统计行数的 SELECT COUNT(1) 语句
+        /// Build a SELECT COUNT(1) statement with a lambda condition
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="wrapper"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="wrapper">Lambda 条件包装器 / The lambda wrapper</param>
+        /// <returns>含 SQL 与参数的 SqlInfo（COUNT 结果列别名为 _record_count_）/ The SqlInfo carrying SQL and parameters (COUNT aliased _record_count_)</returns>
         public virtual SqlInfo BuildSqlOfCount<M>(LambdaWrapper<M> wrapper)
             where M : class
         {
@@ -1320,11 +1495,12 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 构造按 Filter 条件统计行数的 SELECT COUNT(1) 语句
+        /// Build a SELECT COUNT(1) statement with a filter condition
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="wrapper"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="wrapper">Filter 条件包装器；null 统计全表 / The filter wrapper; null counts the whole table</param>
+        /// <returns>含 SQL 与参数的 SqlInfo（COUNT 结果列别名为 _record_count_）/ The SqlInfo carrying SQL and parameters (COUNT aliased _record_count_)</returns>
         public virtual SqlInfo BuildSqlOfCount<M>(FilterWrapper<M>? wrapper = null)
             where M : class
         {
@@ -1349,11 +1525,13 @@ namespace Rampage.Data
         #region Utilities
 
         /// <summary>
-        /// 
+        /// 解析要查询/更新的字段映射列表；fields 为 null 或空时返回全部列映射
+        /// Resolve the field mappings to select/update; returns all column mappings when fields is null or empty
         /// </summary>
-        /// <param name="mapping"></param>
-        /// <param name="fields"></param>
-        /// <returns></returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="mapping">表映射；null 时从模型解析 / Table mapping; resolved from the model when null</param>
+        /// <param name="fields">字段名列表（属性名或列名，经 ResolveColumnName 解析）/ Field names (property or column names, resolved via ResolveColumnName)</param>
+        /// <returns>字段映射列表；字段在映射中不存在时抛出无效参数异常 / The field mapping list; throws for fields missing from the mapping</returns>
         protected virtual List<FieldMapping>? GetQueryFieldsMappingList<M>(QueryFields? fields, TableMapping? mapping = null) where M : class
         {
             mapping = mapping ?? ModelSchemaStore.GetModelMapping<M>()!;
@@ -1381,14 +1559,15 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 从模型实例构造 UPDATE SET 子句（跳过主键；值经 DbParameterValueHandler 处理后参数化）
+        /// Build the UPDATE SET clause from a model instance (primary key skipped; values parameterized via DbParameterValueHandler)
         /// </summary>
-        /// <typeparam name="M"></typeparam>
-        /// <param name="model"></param>
-        /// <param name="mapping"></param>
-        /// <param name="sqlInfo"></param>
-        /// <param name="updateFields"></param>
-        /// <returns>For example: `Name` = @Name, `Price` = @Price, ...</returns>
+        /// <typeparam name="M">模型类型 / The model type</typeparam>
+        /// <param name="model">携带新值的模型实例 / The model instance carrying new values</param>
+        /// <param name="mapping">表映射；null 时从模型解析 / Table mapping; resolved from the model when null</param>
+        /// <param name="sqlInfo">接收参数的 SQL 信息对象 / The SQL info object receiving parameters</param>
+        /// <param name="updateFields">要更新的字段；null 表示除主键外全部列 / Fields to update; null means all non-pk columns</param>
+        /// <returns>For example: `Name` = @Name, `Price` = @Price, ... / 例如：`Name` = @Name, `Price` = @Price, ...</returns>
         protected virtual string BuildUpdateFieldsString<M>(M model, SqlInfo sqlInfo, QueryFields? updateFields, TableMapping? mapping = null)
             where M : class
         {
@@ -1433,12 +1612,13 @@ namespace Rampage.Data
         }
 
         /// <summary>
-        /// 
+        /// 从 UpdateFields 字典构造 UPDATE SET 子句（键为列名，值经 DbParameterValueHandler 处理后参数化）
+        /// Build the UPDATE SET clause from an UpdateFields dictionary (keys are column names; values parameterized via DbParameterValueHandler)
         /// </summary>
-        /// <param name="updateFields"></param>
-        /// <param name="sqlInfo"></param>
-        /// <param name="mapping"></param>
-        /// <returns>For example: `Name` = @Name, `Price` = @Price, ...</returns>
+        /// <param name="updateFields">键为列名、值为新值的更新字段字典（不能为空）/ The field dictionary keyed by column name (must not be empty)</param>
+        /// <param name="sqlInfo">接收参数的 SQL 信息对象 / The SQL info object receiving parameters</param>
+        /// <param name="mapping">表映射 / Table mapping</param>
+        /// <returns>For example: `Name` = @Name, `Price` = @Price, ... / 例如：`Name` = @Name, `Price` = @Price, ...</returns>
         protected virtual string BuildUpdateFieldsString(UpdateFields updateFields, SqlInfo sqlInfo, TableMapping mapping)
         {
             if (updateFields.Fields == null || updateFields.Fields.Count == 0)
@@ -1473,9 +1653,18 @@ namespace Rampage.Data
         }
 
         /// <summary>
+        /// 格式化写入（SET/VALUES）用的参数表达式：PostgreSQL 的 Jsonb 列在参数后追加 "::jsonb" 强转，其余原样返回
+        /// Format a write (SET/VALUES) parameter expression: appends "::jsonb" for Jsonb columns on PostgreSQL; passthrough elsewhere
+        /// </summary>
+        /// <remarks>
         /// PostgreSQL 不会把 text 参数隐式写入 jsonb 字段；映射明确标记后统一在 SQL 侧转换。
         /// 其他数据库保持原参数表达式，避免引入方言语法。
-        /// </summary>
+        /// PostgreSQL does not implicitly cast text parameters into jsonb columns; the cast is applied on the SQL side
+        /// once the mapping marks the column. Other databases keep the raw parameter expression to avoid dialect syntax.
+        /// </remarks>
+        /// <param name="fieldMapping">目标字段映射（含 Jsonb 标记）/ The target field mapping (carrying the Jsonb flag)</param>
+        /// <param name="formattedParameter">已格式化的参数占位符 / The formatted parameter placeholder</param>
+        /// <returns>写入用参数表达式，如 @Name 或 @Data::jsonb / The parameter expression for writes, e.g. @Name or @Data::jsonb</returns>
         protected virtual string FormatWriteParameter(FieldMapping fieldMapping, string formattedParameter)
         {
             return DatabaseType == DatabaseType.PostgreSQL && fieldMapping.Jsonb

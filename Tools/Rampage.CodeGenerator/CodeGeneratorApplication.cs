@@ -8,24 +8,50 @@ using System;
 
 namespace Rampage.CodeGenerator
 {
+    /// <summary>
+    /// 代码生成应用程序：交互式选择数据库连接与代码模板，为指定表批量解析模板并输出代码文件 /
+    /// Code generator application: interactively selects a database connection and a template,
+    /// then parses templates for each table and writes the output code files
+    /// </summary>
     public class CodeGeneratorApplication : RampageBasicApplication, IRampageApplication
     {
+        /// <summary>代码生成服务（自动注入）/ Generate service (auto-injected)</summary>
         [Auto]
         protected IGenerateService GenerateBo = default!;
+        /// <summary>模板解析服务（自动注入）/ Template service (auto-injected)</summary>
         [Auto]
         protected ITemplateService TemplateBo = default!;
 
+        /// <summary>
+        /// 初始化服务（当前仅调用基类实现）/ Initializes services (currently only calls the base implementation)
+        /// </summary>
+        /// <param name="args">命令行参数 / Command-line arguments</param>
         public override void InitializeServices(string[] args)
         {
             base.InitializeServices(args);
         }
 
+        /// <summary>
+        /// 应用主流程：先执行基类启动逻辑，再进入代码生成交互 / Main flow: runs the base startup logic and then the generation interaction
+        /// </summary>
+        /// <param name="args">命令行参数 / Command-line arguments</param>
         public override void Run(string[] args)
         {
             base.Run(args);
             Generate();
         }
 
+        /// <summary>
+        /// 执行一轮完整的代码生成交互流程 / Runs one full round of the generation interaction
+        /// </summary>
+        /// <remarks>
+        /// 流程：列出 ConnectionSetting 配置供选择 → 读取该库的表信息 → 列出可用模板供选择 →
+        /// 对每张表逐一解析模板的全部文件（列→语言类型与列→DbType 的映射以回调委托传入 TemplateBo.Parse），
+        /// 任一模板文件解析失败即整体中断。结束后询问“是否继续”，输入 Y 则递归重复整轮流程。
+        /// Flow: list ConnectionSetting entries → load table metadata → list templates → parse every template file
+        /// for each table (column-to-language-type and column-to-DbType mappings are passed to TemplateBo.Parse as callbacks),
+        /// aborting on the first failed file; answering "Y" to the "continue?" prompt restarts the round recursively.
+        /// </remarks>
         private void Generate()
         {
             try

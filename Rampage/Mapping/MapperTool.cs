@@ -10,6 +10,8 @@ namespace Rampage.Mapping
     /// <summary>
     /// 同名属性对象映射器：属性访问复用 EmitTool 编译委托（无逐次反射），映射对按类型组合缓存。
     /// 支持 Nullable 目标类型与 IConvertible 类型转换。
+    /// / Same-name property mapper: property access reuses EmitTool-compiled delegates (no per-call reflection);
+    /// mapping pairs are cached per type combination. Nullable target types and IConvertible conversions are supported.
     /// </summary>
     public static class MapperTool
     {
@@ -23,12 +25,14 @@ namespace Rampage.Mapping
         }
 
         /// <summary>
-        /// 映射到新目标实例（同名属性自动赋值）
+        /// 映射到新目标实例（同名属性自动赋值）。
+        /// / Map onto a new target instance (same-name properties are copied automatically).
         /// </summary>
-        /// <typeparam name="TSource"></typeparam>
-        /// <typeparam name="TTarget"></typeparam>
-        /// <param name="source"></param>
-        /// <returns></returns>
+        /// <typeparam name="TSource">源类型 / source type</typeparam>
+        /// <typeparam name="TTarget">目标类型，须有无参构造函数 / target type; requires a parameterless constructor</typeparam>
+        /// <param name="source">源对象，不可为 null / source object; must not be null</param>
+        /// <returns>新建并完成同名属性赋值的目标实例 / a new target instance with same-name properties copied</returns>
+        /// <exception cref="ArgumentNullException">source 为 null / source is null</exception>
         public static TTarget Map<TSource, TTarget>(TSource source) where TTarget : new()
         {
             if (source == null)
@@ -41,12 +45,14 @@ namespace Rampage.Mapping
         }
 
         /// <summary>
-        /// 映射到已有目标实例（同名属性覆盖写入）
+        /// 映射到已有目标实例（同名属性覆盖写入）。
+        /// / Map onto an existing target instance (same-name properties are overwritten).
         /// </summary>
-        /// <typeparam name="TSource"></typeparam>
-        /// <typeparam name="TTarget"></typeparam>
-        /// <param name="source"></param>
-        /// <param name="target"></param>
+        /// <typeparam name="TSource">源类型 / source type</typeparam>
+        /// <typeparam name="TTarget">目标类型 / target type</typeparam>
+        /// <param name="source">源对象，不可为 null / source object; must not be null</param>
+        /// <param name="target">目标对象，不可为 null / target object; must not be null</param>
+        /// <exception cref="ArgumentNullException">source 或 target 为 null / source or target is null</exception>
         public static void MapTo<TSource, TTarget>(TSource source, TTarget target)
         {
             if (source == null)
