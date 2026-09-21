@@ -8,8 +8,6 @@ namespace Rampage.Validation
     /// <remarks>
     /// 按属性 TypeCode 分派比较方式（数值、日期按解析后比较，不等于时通过）；
     /// The comparison is dispatched by the property's TypeCode (numeric / date values are parsed and compared; passes when not equal);
-    /// 注意：字符串分支当前实现为"与 Data 相等时返回 true（通过）"，与类名语义及其他分支相反，疑似缺陷；
-    /// Note: the string branch currently returns true (pass) when the value EQUALS Data — the opposite of the class's intent and of the other branches; likely a defect.
     /// 值或 Data 为 null、类型不支持、解析失败时按 Required 决定通过与否。
     /// When either side is null, the type is unsupported, or parsing fails, the outcome follows Required.
     /// </remarks>
@@ -30,7 +28,7 @@ namespace Rampage.Validation
             switch (typeCode)
             {
                 case TypeCode.String:
-                    return string.Compare(Data.ToString(), s) == 0;
+                    return string.Compare(Data.ToString(), s) != 0;
                 case TypeCode.Int64:
                 case TypeCode.Int32:
                 case TypeCode.Int16:

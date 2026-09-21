@@ -114,10 +114,10 @@ namespace Rampage.DatabaseDeployer.Service
         /// <remarks>
         /// 脚本目录取 deploy.json 的 ScriptDirectoryPath（可指向任意路径），未配置时为“脚本根目录+目录名”。
         /// 会同时扫描该目录本身与其一级子目录；所有脚本（含子目录中的）的 DirectoryName 均记为一级目录名。
-        /// 列表未显式按版本号排序，实际执行顺序取决于文件枚举顺序（文件名排序）。
+        /// 返回列表按版本号升序排序，即脚本的执行顺序。
         /// The script directory comes from ScriptDirectoryPath in deploy.json (any path), falling back to "script root + directory name".
         /// Both the directory itself and its first-level subdirectories are scanned; DirectoryName is always the first-level directory name.
-        /// The list is not explicitly sorted by version; execution order follows file enumeration order (file-name order).
+        /// The returned list is sorted ascending by version, which is the execution order.
         /// </remarks>
         public List<SqlScript> GetSqlScriptListFromVersion(string directoryName, long fromVersion)
         {
@@ -173,6 +173,8 @@ namespace Rampage.DatabaseDeployer.Service
                 }
             }
 
+            // 按版本号升序执行，避免非零填充版本（1、10、2）时顺序错乱 / sort ascending by version so non-zero-padded versions (1, 10, 2) execute in the right order
+            list.Sort((a, b) => a.Version.CompareTo(b.Version));
             return list;
         }
 

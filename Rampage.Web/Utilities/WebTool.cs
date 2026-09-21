@@ -350,27 +350,27 @@ namespace Rampage.Web.Utilities
         /// <remarks>
         /// 只绑定模型在数据库映射（ModelSchemaStore 的 TableMapping）中登记过的字段，未映射属性不参与绑定；
         /// 值经 StringTool.TryParse 按属性基础类型（含可空 unwrap）转换，转换失败的字段保持原值。
-        /// 无请求上下文、请求与 httpMethod 不匹配（如 Post 模式但非 POST 请求）或模型无映射时返回新实例（原有值不保留）。
+        /// 无请求上下文、请求与 httpMethod 不匹配（如 Post 模式但非 POST 请求）或模型无映射时跳过绑定，原样返回传入的 model（为 null 时返回新实例）。
         /// </remarks>
         public static T RenderRequestModel<T>(T model, HttpRequestMethod httpMethod) where T : class, new()
         {
             HttpContext? context = RequestContext.Current;
             if (context == null)
             {
-                return new T();
+                return model ?? new T();
             }
             HttpRequest request = context.Request;
             if (request == null)
             {
-                return new T();
+                return model ?? new T();
             }
             if (httpMethod == HttpRequestMethod.Post && (string.Compare(request.Method, "POST", true) != 0 || request.Form == null))
             {
-                return new T();
+                return model ?? new T();
             }
             else if (request.Query == null)
             {
-                return new T();
+                return model ?? new T();
             }
 
             if (model == null)
@@ -379,7 +379,7 @@ namespace Rampage.Web.Utilities
             }
             TableMapping? schema = ModelSchemaStore.GetModelMapping<T>();
             if (schema == null)
-                return new T();
+                return model;
 
             foreach (var column in schema.FieldMappingList!)
             {

@@ -189,7 +189,19 @@ namespace Rampage.Validation
         /// <returns>验证结果 / The validation result</returns>
         public static ValidationResult Validate<T>(T? obj, string? cultureName = null) where T : class
         {
-            return Validate(obj, cultureName);
+            CultureInfo? culture = null;
+            if (string.IsNullOrEmpty(cultureName) == false)
+            {
+                try
+                {
+                    culture = CultureInfo.GetCultureInfo(cultureName);
+                }
+                catch (CultureNotFoundException)
+                {
+                    // 无效文化名回退默认语言 / An invalid culture name falls back to the default language
+                }
+            }
+            return Validate(obj, culture);
         }
 
         /// <summary>
@@ -271,18 +283,19 @@ namespace Rampage.Validation
                             {
                                 args = args.Concat(args2).ToArray();
                             }
-                            if (!validateResult && !item.IsWarning)
-                            {
-                                result.Success = false;
-                                resultItem.Description = string.Format(text!, args);
-                            }
-                            else
+                            if (validateResult)
                             {
                                 continue;
                             }
-                            if (!validateResult && item.IsWarning)
+                            resultItem.Description = string.Format(text!, args);
+                            if (item.IsWarning)
                             {
+                                // 警告级失败：不置 Success=false，仅标记 HasWarnings / Warning-level failure: keeps Success true and only flags HasWarnings
                                 result.HasWarnings = true;
+                            }
+                            else
+                            {
+                                result.Success = false;
                             }
 
                             if (!result.Details.ContainsKey(item.PropertyName))

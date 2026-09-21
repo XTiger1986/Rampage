@@ -18,10 +18,9 @@ namespace Rampage.DatabaseLibrary.Sqlite
     /// 1. SQL 参数前缀为 "@"；参数对象支持 IDictionary&lt;string,object&gt; / IDictionary&lt;string,dynamic&gt; / 匿名对象 / ExpandoObject / 普通 POCO（后三者按属性反射组装，null 属性写入 DBNull）。
     ///    SQL parameter prefix is "@"; the parameter object may be a dictionary, anonymous type, ExpandoObject or plain POCO (the latter three are assembled from properties via reflection; null properties become DBNull).
     /// 2. 不做 DateTime 钳制（<see cref="GetParameter"/> 仅透传原值；代码中留有 TODO）/ no DateTime clamping (<see cref="GetParameter"/> passes values through; a TODO remains in code).
-    /// 3. ExecuteDataSet 同步/异步均只装载第一个结果集（单表，无 Table 命名），与其余实现的多结果集语义不同。
-    ///    ExecuteDataSet (sync and async) loads only the first result set (a single unnamed table), unlike the multi-result-set semantics of the other implementations.
-    /// 4. ExecuteScalar&lt;T&gt; 直接拆箱转换 (T)obj（不走 ConvertScalar），类型不完全匹配时会抛 InvalidCastException。
-    ///    ExecuteScalar&lt;T&gt; does a direct cast (T)obj (no ConvertScalar) and throws InvalidCastException when the type does not match exactly.
+    /// 3. ExecuteDataSet 同步/异步均逐个装载全部结果集（无 Table 命名）。
+    ///    ExecuteDataSet (sync and async) loads every result set in turn (unnamed tables).
+    /// 4. ExecuteScalar&lt;T&gt; 结果为 null / DBNull 时返回 default，其余经 ConvertScalar 转换 / ExecuteScalar&lt;T&gt; yields default for null / DBNull results and converts others via ConvertScalar.
     /// 5. 连接未打开时各方法会先自动打开连接 / every method opens the connection first when it is not open.
     /// 6. ExecuteReader / ExecuteGridReader 返回的包装器持有命令对象，释放包装器会连带释放 reader 与命令。
     ///    The wraps returned by ExecuteReader / ExecuteGridReader own the command; disposing them disposes the reader and the command too.
@@ -202,7 +201,7 @@ namespace Rampage.DatabaseLibrary.Sqlite
         /// <param name="transaction">要加入的事务；null 表示不使用事务 / the transaction to enlist in; null for none.</param>
         /// <param name="commandType">命令类型 / the command type.</param>
         /// <param name="commandTimeout">命令超时（秒）/ the command timeout in seconds.</param>
-        /// <returns>仅含第一个结果集的 DataSet / a DataSet holding only the first result set.</returns>
+        /// <returns>装载了全部结果集的 DataSet / a DataSet holding every result set.</returns>
         public DataSet ExecuteDataSet(IDbConnection conn, string sql, object? param = null, IDbTransaction? transaction = null, CommandType? commandType = CommandType.Text, int? commandTimeout = null)
         {
             var ds = new DataSet();
@@ -211,23 +210,27 @@ namespace Rampage.DatabaseLibrary.Sqlite
             {
                 using (SqliteDataReader reader = command.ExecuteReader())
                 {
-                    DataTable dt = new DataTable();
-                    dt.Load(reader);
-                    ds.Tables.Add(dt);
+                    // 逐个装载全部结果集 / load every result set in turn
+                    do
+                    {
+                        DataTable dt = new DataTable();
+                        dt.Load(reader);
+                        ds.Tables.Add(dt);
+                    } while (reader.NextResult());
                 }
             }
 
             return ds;
         }
 
-        /// <summary>异步执行查询并装入 DataSet；与其他实现不同，此处只装载第一个结果集（单表、无表名）/ Asynchronously executes the query into a DataSet; unlike the other implementations, only the first result set is loaded (a single unnamed table).</summary>
+        /// <summary>异步执行查询并装入 DataSet（逐个装载全部结果集，无表名）/ Asynchronously executes the query into a DataSet (every result set loaded in turn, unnamed tables).</summary>
         /// <param name="conn">数据库连接，必须为 SqliteConnection / the connection; must be a SqliteConnection.</param>
         /// <param name="param">SQL 参数对象 / the SQL parameter object.</param>
         /// <param name="transaction">要加入的事务；null 表示不使用事务 / the transaction to enlist in; null for none.</param>
         /// <param name="commandType">命令类型 / the command type.</param>
         /// <param name="commandTimeout">命令超时（秒）/ the command timeout in seconds.</param>
         /// <param name="cancellationToken">取消令牌 / the cancellation token.</param>
-        /// <returns>仅含第一个结果集的 DataSet / a DataSet holding only the first result set.</returns>
+        /// <returns>装载了全部结果集的 DataSet / a DataSet holding every result set.</returns>
         public async Task<DataSet> ExecuteDataSetAsync(IDbConnection conn, string sql, object? param = null, IDbTransaction? transaction = null, CommandType? commandType = CommandType.Text, int? commandTimeout = null, CancellationToken cancellationToken = default)
         {
             var ds = new DataSet();
@@ -236,9 +239,13 @@ namespace Rampage.DatabaseLibrary.Sqlite
             {
                 using (var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    DataTable dt = new DataTable();
-                    dt.Load(reader);
-                    ds.Tables.Add(dt);
+                    // 逐个装载全部结果集 / load every result set in turn
+                    do
+                    {
+                        DataTable dt = new DataTable();
+                        dt.Load(reader);
+                        ds.Tables.Add(dt);
+                    } while (reader.NextResult());
                 }
             }
 
@@ -357,11 +364,11 @@ namespace Rampage.DatabaseLibrary.Sqlite
             {
                 obj = command.ExecuteScalar();
             }
-            if (obj == null)
+            if (obj == null || obj == DBNull.Value)
             {
                 return default(T);
             }
-            return (T) obj;
+            return GenericTool.ConvertScalar<T>(obj);
         }
 
         /// <summary>异步执行查询并把首行首列值直接转换为 <typeparamref name="T"/>（(T)obj 强转，类型不匹配抛 InvalidCastException）/ Asynchronously executes the query casting the first column of the first row directly to <typeparamref name="T"/> ((T)obj; throws InvalidCastException on mismatch).</summary>
@@ -376,11 +383,11 @@ namespace Rampage.DatabaseLibrary.Sqlite
         public async Task<T?> ExecuteScalarAsync<T>(IDbConnection conn, string sql, object? param = null, IDbTransaction? transaction = null, CommandType? commandType = CommandType.Text, int? commandTimeout = null, CancellationToken cancellationToken = default)
         {
             object? obj = await ExecuteScalarAsync(conn, sql, param, transaction, commandType, commandTimeout, cancellationToken).ConfigureAwait(false);
-            if (obj == null)
+            if (obj == null || obj == DBNull.Value)
             {
                 return default(T);
             }
-            return (T)obj;
+            return GenericTool.ConvertScalar<T>(obj);
         }
 
         /// <summary>查询全部行，返回 dynamic 列表 / Queries all rows returning a dynamic list.</summary>

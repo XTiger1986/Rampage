@@ -11,12 +11,13 @@ namespace Rampage.Utilities
     {
 
         /// <summary>
-        /// build integer list from start to end
+        /// 构建步进整数列表（升序含 start 不含 end，降序含 start 不含 end） /
+        /// Builds a stepped integer list (contains start, excludes end, in either direction)
         /// </summary>
-        /// <param name="start">start number (inclusive)</param>
-        /// <param name="end">end number (exclusive)</param>
-        /// <param name="step">min/default is 1</param>
-        /// <returns></returns>
+        /// <param name="start">起始数（包含） / The start number (inclusive)</param>
+        /// <param name="end">结束数（不包含） / The end number (exclusive)</param>
+        /// <param name="step">步长，小于等于 0 时按 1 处理 / The step; values at or below 0 are treated as 1</param>
+        /// <returns>步进整数列表；start 与 end 相等时为空列表 / The stepped list; empty when start equals end</returns>
         public static List<int> BuildNumberList(int start, int end, int step = 1)
         {
             if (start == end)
@@ -31,14 +32,14 @@ namespace Rampage.Utilities
             List<int> list = new List<int>(size);
             if (end < start)
             {
-                for (int i = start; i > end; i-= step)
+                for (int i = start; i > end; i -= step)
                 {
                     list.Add(i);
                 }
             }
             else
             {
-                for (int i = start; i < end; i++)
+                for (int i = start; i < end; i += step)
                 {
                     list.Add(i);
                 }

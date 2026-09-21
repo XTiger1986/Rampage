@@ -526,7 +526,7 @@ namespace Rampage.Utilities
         /// </summary>
         /// <typeparam name="T">元素目标类型 / The target element type</typeparam>
         /// <param name="text">待拆分字符串 / The string to split</param>
-        /// <param name="trim">当前未生效：不会对分段做 Trim / Currently ignored: segments are not trimmed</param>
+        /// <param name="trim">是否对每个分段做 Trim / Whether to trim each segment</param>
         /// <param name="separators">分隔符数组；为 null 或空时默认使用 "," / The separators; defaults to "," when null or empty</param>
         /// <returns>转换后的元素列表；无法转换的元素被跳过 / The converted list; items that fail to convert are skipped</returns>
         public static List<T> Explode<T>(string text, bool trim, params string[] separators)
@@ -540,7 +540,7 @@ namespace Rampage.Utilities
         /// <typeparam name="T">元素目标类型 / The target element type</typeparam>
         /// <param name="text">待拆分字符串 / The string to split</param>
         /// <param name="options">拆分选项（如是否移除空元素）/ Split options (e.g. whether empty entries are removed)</param>
-        /// <param name="trim">当前未生效：不会对分段做 Trim / Currently ignored: segments are not trimmed</param>
+        /// <param name="trim">是否对每个分段做 Trim / Whether to trim each segment</param>
         /// <param name="separators">分隔符数组；为 null 或空时默认使用 "," / The separators; defaults to "," when null or empty</param>
         /// <returns>转换后的元素列表；无法转换的元素被跳过 / The converted list; items that fail to convert are skipped</returns>
         public static List<T> Explode<T>(string text, StringSplitOptions options, bool trim, params string[] separators)
@@ -553,7 +553,8 @@ namespace Rampage.Utilities
             List<T> list = new List<T>();
             foreach (string str in strArr)
             {
-                T? item = StringTool.TryParse<T>(str);
+                string segment = trim ? str.Trim() : str;
+                T? item = StringTool.TryParse<T>(segment);
                 if (item != null)
                     list.Add(item);
             }
@@ -713,16 +714,16 @@ namespace Rampage.Utilities
         /// </summary>
         /// <param name="start">起始数（含）/ The start number (inclusive)</param>
         /// <param name="end">结束数（不含）/ The end number (exclusive)</param>
-        /// <param name="step">当前未参与计算，实际步长固定为 1 / Currently ignored; the actual step is fixed at 1</param>
+        /// <param name="step">步长，小于等于 0 时按 1 处理 / The step; values at or below 0 are treated as 1</param>
         /// <returns>形如 [1,2,3] 的 JSON 数组字符串；start 等于 end 时返回 "[]" / A JSON array string such as [1,2,3]; "[]" when start equals end</returns>
-        /// <remarks>实际委托 MathTool.BuildNumberList(start, end) 生成；end 小于 start 时按降序生成。/ Delegates to MathTool.BuildNumberList(start, end); a descending list is produced when end is less than start.</remarks>
+        /// <remarks>实际委托 MathTool.BuildNumberList 生成；end 小于 start 时按降序生成。/ Delegates to MathTool.BuildNumberList; a descending list is produced when end is less than start.</remarks>
         public static string BuildNumberList(int start, int end, int step = 1)
         {
             if (start == end)
             {
                 return "[]";
             }
-            List<int> list = MathTool.BuildNumberList(start, end);
+            List<int> list = MathTool.BuildNumberList(start, end, step);
             return JsonTool.Stringify(list);
         }
 
@@ -801,10 +802,11 @@ namespace Rampage.Utilities
         }
 
         /// <summary>
-        /// Check if it is purely numerical (include int, double, single, decimal...)
+        /// 判断字符串是否为纯数字（含 int、double、single、decimal 等形式：可选前导负号、至多一个小数点） /
+        /// Check whether the string is purely numerical (int, double, single, decimal forms: an optional leading minus and at most one decimal point)
         /// </summary>
-        /// <param name="input"></param>
-        /// <returns></returns>
+        /// <param name="input">输入字符串 / The input string</param>
+        /// <returns>纯数字返回 true；空串或仅负号返回 false / true for purely numerical input; false for an empty string or a lone minus sign</returns>
         public static bool IsPureNumber(string input)
         {
             if (string.IsNullOrEmpty(input))
@@ -812,10 +814,22 @@ namespace Rampage.Utilities
                 return false;
             }
 
+            int start = 0;
+            // 可选前导负号 / optional leading minus sign
+            if (input[0] == '-')
+            {
+                start = 1;
+                if (input.Length == 1)
+                {
+                    return false;
+                }
+            }
+
             bool decimalPointFound = false;
 
-            foreach (char c in input)
+            for (int i = start; i < input.Length; i++)
             {
+                char c = input[i];
                 if (char.IsDigit(c))
                 {
                     continue;
@@ -834,10 +848,6 @@ namespace Rampage.Utilities
                 }
             }
 
-            if (string.IsNullOrEmpty(input))
-            {
-                return false;
-            }
             return true;
         }
 

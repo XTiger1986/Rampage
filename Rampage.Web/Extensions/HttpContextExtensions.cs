@@ -85,13 +85,14 @@ namespace Rampage.Web.Extensions
         }
 
         /// <summary>
-        /// root site url, for example：http://www.1986z.com
+        /// 站点根 URL，例如：http://www.1986z.com / The site root URL, e.g. http://www.1986z.com.
         /// </summary>
-        /// <param name="req"></param>
-        /// <returns></returns>
+        /// <param name="req">当前请求 / The current request.</param>
+        /// <returns>形如 scheme://host[:port] 的根 URL / The root URL as scheme://host[:port].</returns>
+        /// <remarks>req.Host 在非默认端口时已自带端口，此处不再拼接 / req.Host already carries the port when non-default, so no port is appended here.</remarks>
         public static string HostUrl(this HttpRequest req)
         {
-            return string.Concat(req.Scheme, "://", req.Host, req.Protocol == "80" ? string.Empty : ":" + req.Protocol);
+            return string.Concat(req.Scheme, "://", req.Host);
         }
 
         /// <summary>

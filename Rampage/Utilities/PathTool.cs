@@ -254,7 +254,7 @@ namespace Rampage.Utilities
         /// <param name="url">绝对 URL / An absolute url</param>
         /// <param name="name">查询参数名 / The query item name</param>
         /// <returns>移除后的 URL / The url after removal</returns>
-        /// <remarks>要求 url 为绝对 URL（内部直接 new Uri 解析），相对路径会抛出 UriFormatException；当被移除参数是最后一个查询项时实际返回原 URL，查询串不会被清空。/ The url must be absolute (parsed via new Uri internally), otherwise a UriFormatException is thrown; when the removed item is the last remaining query parameter, the original url is returned and the query string is not cleared.</remarks>
+        /// <remarks>要求 url 为绝对 URL（内部直接 new Uri 解析），相对路径会抛出 UriFormatException；移除后查询串为空时返回仅含路径的 URL。/ The url must be absolute (parsed via new Uri internally), otherwise a UriFormatException is thrown; when no query item remains after removal, the path-only url is returned.</remarks>
         public static string RemoveUrlQuery(string url, string name)
         {
             Uri uri = new Uri(url);
@@ -263,16 +263,17 @@ namespace Rampage.Utilities
             if (qsDict.ContainsKey(name))
             {
                 qsDict.Remove(name);
-            }
 
-            if (qsDict.Any())
-            {
-                string qs = GetUrlQueryFromDictionary(qsDict);
-
-                if (!string.IsNullOrEmpty(qs))
+                if (qsDict.Any())
                 {
-                    return string.Concat(urlPath, "?", qs);
+                    string qs = GetUrlQueryFromDictionary(qsDict);
+
+                    if (!string.IsNullOrEmpty(qs))
+                    {
+                        return string.Concat(urlPath, "?", qs);
+                    }
                 }
+                return urlPath;
             }
             return url;
         }
@@ -284,12 +285,13 @@ namespace Rampage.Utilities
         /// <param name="url">绝对 URL / An absolute url</param>
         /// <param name="names">要移除的参数名列表 / The names of the query items to remove</param>
         /// <returns>移除后的 URL / The url after removal</returns>
-        /// <remarks>要求 url 为绝对 URL（内部直接 new Uri 解析），相对路径会抛出 UriFormatException；当移除后不再剩任何查询项时实际返回原 URL，查询串不会被清空。/ The url must be absolute (parsed via new Uri internally), otherwise a UriFormatException is thrown; when no query item remains after removal, the original url is returned and the query string is not cleared.</remarks>
+        /// <remarks>要求 url 为绝对 URL（内部直接 new Uri 解析），相对路径会抛出 UriFormatException；移除后查询串为空时返回仅含路径的 URL。/ The url must be absolute (parsed via new Uri internally), otherwise a UriFormatException is thrown; when no query item remains after removal, the path-only url is returned.</remarks>
         public static string RemoveUrlQuerys(string url, params string[] names)
         {
             Uri uri = new Uri(url);
             string urlPath = uri.GetLeftPart(UriPartial.Path);
             Dictionary<string, List<string>> qsDict = GetDictionaryFromUrl(url);
+            bool removed = false;
             if (names.Any())
             {
                 foreach (string qsName in names)
@@ -297,18 +299,23 @@ namespace Rampage.Utilities
                     if (qsDict.ContainsKey(qsName))
                     {
                         qsDict.Remove(qsName);
+                        removed = true;
                     }
                 }
             }
 
-            if (qsDict.Any())
+            if (removed)
             {
-                string qs = GetUrlQueryFromDictionary(qsDict);
-
-                if (!string.IsNullOrEmpty(qs))
+                if (qsDict.Any())
                 {
-                    return string.Concat(urlPath, "?", qs);
+                    string qs = GetUrlQueryFromDictionary(qsDict);
+
+                    if (!string.IsNullOrEmpty(qs))
+                    {
+                        return string.Concat(urlPath, "?", qs);
+                    }
                 }
+                return urlPath;
             }
             return url;
         }
@@ -349,7 +356,7 @@ namespace Rampage.Utilities
         /// <param name="rootPart">URL 根地址 / The root url</param>
         /// <param name="parts">路径段 / The url parts</param>
         /// <returns>拼接后的完整 URL；未提供任何段时返回 rootPart / The merged full url; rootPart when no part is given</returns>
-        /// <remarks>rootPart 末尾的 "/" 会被去掉；每个不以 "/" 开头的段自动补 "/" 后按字符串直接拼接（绝对 URL 形式的段同样按普通字符串处理）。/ A trailing "/" of rootPart is trimmed; every part not starting with "/" gets one prepended and parts are concatenated as plain strings (even parts written as absolute urls).</remarks>
+        /// <remarks>rootPart 末尾的 "/" 会被去掉；绝对 URL 形式的段取其 PathAndQuery 参与拼接，其余不以 "/" 开头的段自动补 "/" 后拼接。/ A trailing "/" of rootPart is trimmed; parts written as absolute urls contribute their PathAndQuery, and any other part not starting with "/" gets one prepended.</remarks>
         public static string CombileUrl(string rootPart, params string[] parts)
         {
             if (!parts.Any())
@@ -372,9 +379,9 @@ namespace Rampage.Utilities
                     finalPart = tryUri.PathAndQuery;
                 }
 
-                if (!part.StartsWith("/"))
+                if (!finalPart.StartsWith("/"))
                 {
-                    finalPart = "/" + part;
+                    finalPart = "/" + finalPart;
                 }
                 fullPath = string.Concat(fullPath, finalPart);
             }

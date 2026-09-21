@@ -68,7 +68,7 @@ namespace Rampage.Management.Mvc
             {
                 RampageLogger.Error(ex);
                 operationResult = R.Failure(ex.Message);
-                return View(operationResult);
+                return VW(operationResult);
             }
         }
 

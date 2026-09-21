@@ -165,13 +165,13 @@ namespace Rampage.Dynamic
             }
             else if (attributes.OfType<SelectListCommand>().Any())
             {
-                attributeInstance = (SelectListCommand)Attribute.GetCustomAttribute(method, selectCommandType)!;
+                attributeInstance = (SelectListCommand)Attribute.GetCustomAttribute(method, selectListCommandType)!;
                 curdMethod = curdExecutorType.GetMethod("SelectList")!;
                 curdCommandType = selectListCommandType;
             }
             else if (attributes.OfType<ExecuteCommand>().Any())
             {
-                attributeInstance = (ExecuteCommand)Attribute.GetCustomAttribute(method, selectCommandType)!;
+                attributeInstance = (ExecuteCommand)Attribute.GetCustomAttribute(method, executeCommandType)!;
                 curdMethod = curdExecutorType.GetMethod("Execute")!;
                 curdCommandType = executeCommandType;
             }

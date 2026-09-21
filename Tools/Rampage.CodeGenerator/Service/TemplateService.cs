@@ -178,7 +178,8 @@ namespace Rampage.CodeGenerator.Service
             if (_regexEachColumnLoop.IsMatch(code))
             {
                 MatchCollection matches = _regexEachColumnLoop.Matches(code);
-                for (int m = 0; m < matches.Count; m++)
+                // 从后往前替换：match.Index/Length 基于原始模板，先替换靠后的块不会影响靠前块的索引 / replace from last to first: match.Index/Length refer to the original template, so replacing later blocks first never shifts earlier blocks' indices
+                for (int m = matches.Count - 1; m >= 0; m--)
                 {
                     Match match = matches[m];
                     string loopTemplateCode = match.Groups["Code"].Value;
@@ -292,7 +293,7 @@ namespace Rampage.CodeGenerator.Service
 
                     string parsedLoopCode = loopBuilder.ToString();
 
-                    // 在匹配位置整块替换；match.Index/Length 基于原始模板文本 / replace the whole block at its match position, whose index/length come from the original template text
+                    // 在匹配位置整块替换 / replace the whole block at its match position
                     codeBuilder.Replace(match.Value, parsedLoopCode, match.Index, match.Length);
                 }
             }

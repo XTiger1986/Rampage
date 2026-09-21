@@ -377,7 +377,7 @@ namespace Rampage.DatabaseLibrary.PostgreSQL
             {
                 obj = command.ExecuteScalar();
             }
-            if (obj == null)
+            if (obj == null || obj == DBNull.Value)
             {
                 return default(T);
             }
@@ -396,7 +396,7 @@ namespace Rampage.DatabaseLibrary.PostgreSQL
         public async Task<T?> ExecuteScalarAsync<T>(IDbConnection conn, string sql, object? param = null, IDbTransaction? transaction = null, CommandType? commandType = CommandType.Text, int? commandTimeout = null, CancellationToken cancellationToken = default)
         {
             object? obj = await ExecuteScalarAsync(conn, sql, param, transaction, commandType, commandTimeout, cancellationToken).ConfigureAwait(false);
-            if (obj == null)
+            if (obj == null || obj == DBNull.Value)
             {
                 return default(T);
             }

@@ -1017,9 +1017,36 @@ namespace Rampage.Hierarchy
             return DatabaseClient.DeleteById<M>(key, commandTimeout);
         }
 
+        /// <summary>按实体主键值删除一条数据（从实体读取主键后转发给按主键删除）/ Delete one row by the entity's primary key (reads the key from the entity, then forwards to the by-key delete)</summary>
+        /// <param name="data">携带主键值的实体 / the entity carrying the primary key value</param>
+        /// <param name="commandTimeout">命令超时秒数；null 使用默认值 / command timeout in seconds; null for default</param>
+        /// <returns>是否成功 / true on success</returns>
+        /// <exception cref="SuperException">实体未声明主键时抛出 / thrown when the entity declares no primary key</exception>
         public bool DeleteById(M data, int? commandTimeout = null)
         {
-            return DatabaseClient.DeleteById<M>(data, commandTimeout);
+            return DatabaseClient.DeleteById<M>(GetPrimaryKeyValue(data)!, commandTimeout);
+        }
+
+        /// <summary>
+        /// 从实体读取主键属性值 / Reads the primary key property value from an entity
+        /// </summary>
+        /// <param name="data">实体 / the entity</param>
+        /// <returns>主键值 / the primary key value</returns>
+        /// <exception cref="SuperException">实体未声明主键时抛出 / thrown when the entity declares no primary key</exception>
+        private static object? GetPrimaryKeyValue(M data)
+        {
+            TableMapping? mapping = ModelSchemaStore.GetModelMapping(typeof(M));
+            string? primaryKey = mapping?.PrimaryKey;
+            if (mapping == null || string.IsNullOrEmpty(primaryKey))
+            {
+                throw new ExceptionExtensions.SuperException($"Type \"{typeof(M).FullName}\" declares no primary key");
+            }
+            FieldMapping? fieldMapping = mapping.GetColumnMapping(primaryKey);
+            if (fieldMapping == null)
+            {
+                throw new ExceptionExtensions.SuperException($"Primary key column \"{primaryKey}\" of type \"{typeof(M).FullName}\" maps no property");
+            }
+            return Rampage.Reflection.EmitTool.GetPropertyValue(data, fieldMapping.PropertyName);
         }
 
         /// <summary>按 LambdaWrapper 条件删除数据 / Delete rows matching a LambdaWrapper</summary>

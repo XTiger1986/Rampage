@@ -73,7 +73,7 @@ namespace Rampage.Drawing.VerificationCode
             resultCode = null;
             byte[]? retByte = null;
             int count = codeTypes.Length;
-            int index = new Random(Guid.NewGuid().GetHashCode()).Next(0, count - 1);
+            int index = new Random(Guid.NewGuid().GetHashCode()).Next(0, count);
             int codeType = codeTypes[index];
             switch (codeType)
             {

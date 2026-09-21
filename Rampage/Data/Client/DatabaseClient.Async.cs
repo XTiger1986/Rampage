@@ -536,7 +536,7 @@ namespace Rampage.Data.Client
         /// Asynchronously query a paged data list by a LambdaWrapper
         /// </summary>
         /// <typeparam name="M">模型-表映射类型 / model-table mapping type</typeparam>
-        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（当前实现按列名 "RecordCount" 读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (the current implementation reads the column named "RecordCount")</param>
+        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（按 RECORD_COUNT_RESULT_COLUMN 常量列读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (read via the RECORD_COUNT_RESULT_COLUMN constant)</param>
         /// <param name="wrapper">查询包装器 / the query wrapper</param>
         /// <param name="cancellationToken">取消令牌 / cancellation token</param>
         /// <returns>当前页数据列表；总行数写入 pagerInfo.RecordCount / the rows of the current page; the total row count is written back to pagerInfo.RecordCount</returns>
@@ -551,7 +551,7 @@ namespace Rampage.Data.Client
                     List<M> dataList = grid.SelectList<M>();
                     if (pagerInfo.RecordCount == null)
                     {
-                        pagerInfo.RecordCount = grid.ExecuteScalar<long>("RecordCount");
+                        pagerInfo.RecordCount = grid.ExecuteScalar<long>(RECORD_COUNT_RESULT_COLUMN);
                     }
                     return dataList;
                 }
@@ -564,7 +564,7 @@ namespace Rampage.Data.Client
         /// </summary>
         /// <typeparam name="M">模型-表映射类型 / model-table mapping type</typeparam>
         /// <typeparam name="R">结果类型 / result type</typeparam>
-        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（当前实现按列名 "RecordCount" 读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (the current implementation reads the column named "RecordCount")</param>
+        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（按 RECORD_COUNT_RESULT_COLUMN 常量列读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (read via the RECORD_COUNT_RESULT_COLUMN constant)</param>
         /// <param name="wrapper">查询包装器 / the query wrapper</param>
         /// <param name="cancellationToken">取消令牌 / cancellation token</param>
         /// <returns>当前页结果列表；总行数写入 pagerInfo.RecordCount / the mapped rows of the current page; the total row count is written back to pagerInfo.RecordCount</returns>
@@ -581,7 +581,7 @@ namespace Rampage.Data.Client
                     List<R> dataList = grid.SelectList<R>();
                     if (pagerInfo.RecordCount == null)
                     {
-                        pagerInfo.RecordCount = grid.ExecuteScalar<long>("RecordCount");
+                        pagerInfo.RecordCount = grid.ExecuteScalar<long>(RECORD_COUNT_RESULT_COLUMN);
                     }
                     return dataList;
                 }
@@ -593,7 +593,7 @@ namespace Rampage.Data.Client
         /// Asynchronously query a paged data list by a Lambda expression
         /// </summary>
         /// <typeparam name="M">模型-表映射类型 / model-table mapping type</typeparam>
-        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（当前实现按列名 "RecordCount" 读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (the current implementation reads the column named "RecordCount")</param>
+        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（按 RECORD_COUNT_RESULT_COLUMN 常量列读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (read via the RECORD_COUNT_RESULT_COLUMN constant)</param>
         /// <param name="condition">Lambda 查询条件 / the Lambda query condition</param>
         /// <param name="commandTimeout">命令超时秒数，null 用驱动默认 / command timeout in seconds; null uses the provider default</param>
         /// <param name="cancellationToken">取消令牌 / cancellation token</param>
@@ -610,7 +610,7 @@ namespace Rampage.Data.Client
                     List<M> dataList = grid.SelectList<M>();
                     if (pagerInfo.RecordCount == null)
                     {
-                        pagerInfo.RecordCount = grid.ExecuteScalar<long>("RecordCount");
+                        pagerInfo.RecordCount = grid.ExecuteScalar<long>(RECORD_COUNT_RESULT_COLUMN);
                     }
                     return dataList;
                 }
@@ -623,7 +623,7 @@ namespace Rampage.Data.Client
         /// </summary>
         /// <typeparam name="M">模型-表映射类型 / model-table mapping type</typeparam>
         /// <typeparam name="R">结果类型 / result type</typeparam>
-        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（当前实现按列名 "RecordCount" 读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (the current implementation reads the column named "RecordCount")</param>
+        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（按 RECORD_COUNT_RESULT_COLUMN 常量列读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (read via the RECORD_COUNT_RESULT_COLUMN constant)</param>
         /// <param name="condition">Lambda 查询条件 / the Lambda query condition</param>
         /// <param name="commandTimeout">命令超时秒数，null 用驱动默认 / command timeout in seconds; null uses the provider default</param>
         /// <param name="cancellationToken">取消令牌 / cancellation token</param>
@@ -642,7 +642,7 @@ namespace Rampage.Data.Client
                     List<R> dataList = grid.SelectList<R>();
                     if (pagerInfo.RecordCount == null)
                     {
-                        pagerInfo.RecordCount = grid.ExecuteScalar<long>("RecordCount");
+                        pagerInfo.RecordCount = grid.ExecuteScalar<long>(RECORD_COUNT_RESULT_COLUMN);
                     }
                     return dataList;
                 }
@@ -654,7 +654,7 @@ namespace Rampage.Data.Client
         /// Asynchronously query a paged data list by a FilterWrapper; a null wrapper pages all rows
         /// </summary>
         /// <typeparam name="M">模型-表映射类型 / model-table mapping type</typeparam>
-        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（当前实现按列名 "RecordCount" 读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (the current implementation reads the column named "RecordCount")</param>
+        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（按 RECORD_COUNT_RESULT_COLUMN 常量列读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (read via the RECORD_COUNT_RESULT_COLUMN constant)</param>
         /// <param name="wrapper">过滤包装器，null 表示无条件 / the filter wrapper; null means no condition</param>
         /// <param name="cancellationToken">取消令牌 / cancellation token</param>
         /// <returns>当前页数据列表；总行数写入 pagerInfo.RecordCount / the rows of the current page; the total row count is written back to pagerInfo.RecordCount</returns>
@@ -669,7 +669,7 @@ namespace Rampage.Data.Client
                     List<M> dataList = grid.SelectList<M>();
                     if (pagerInfo.RecordCount == null)
                     {
-                        pagerInfo.RecordCount = grid.ExecuteScalar<long>("RecordCount");
+                        pagerInfo.RecordCount = grid.ExecuteScalar<long>(RECORD_COUNT_RESULT_COLUMN);
                     }
                     return dataList;
                 }
@@ -682,7 +682,7 @@ namespace Rampage.Data.Client
         /// </summary>
         /// <typeparam name="M">模型-表映射类型 / model-table mapping type</typeparam>
         /// <typeparam name="R">结果类型 / result type</typeparam>
-        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（当前实现按列名 "RecordCount" 读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (the current implementation reads the column named "RecordCount")</param>
+        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（按 RECORD_COUNT_RESULT_COLUMN 常量列读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (read via the RECORD_COUNT_RESULT_COLUMN constant)</param>
         /// <param name="wrapper">过滤包装器，null 表示无条件 / the filter wrapper; null means no condition</param>
         /// <param name="cancellationToken">取消令牌 / cancellation token</param>
         /// <returns>当前页结果列表；总行数写入 pagerInfo.RecordCount / the mapped rows of the current page; the total row count is written back to pagerInfo.RecordCount</returns>
@@ -699,7 +699,7 @@ namespace Rampage.Data.Client
                     List<R> dataList = grid.SelectList<R>();
                     if (pagerInfo.RecordCount == null)
                     {
-                        pagerInfo.RecordCount = grid.ExecuteScalar<long>("RecordCount");
+                        pagerInfo.RecordCount = grid.ExecuteScalar<long>(RECORD_COUNT_RESULT_COLUMN);
                     }
                     return dataList;
                 }
@@ -711,7 +711,7 @@ namespace Rampage.Data.Client
         /// Asynchronously query a paged data list by a DataFilter
         /// </summary>
         /// <typeparam name="M">模型-表映射类型 / model-table mapping type</typeparam>
-        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（当前实现按列名 "RecordCount" 读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (the current implementation reads the column named "RecordCount")</param>
+        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（按 RECORD_COUNT_RESULT_COLUMN 常量列读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (read via the RECORD_COUNT_RESULT_COLUMN constant)</param>
         /// <param name="filter">数据过滤器 / the data filter</param>
         /// <param name="commandTimeout">命令超时秒数，null 用驱动默认 / command timeout in seconds; null uses the provider default</param>
         /// <param name="cancellationToken">取消令牌 / cancellation token</param>
@@ -728,7 +728,7 @@ namespace Rampage.Data.Client
                     List<M> dataList = grid.SelectList<M>();
                     if (pagerInfo.RecordCount == null)
                     {
-                        pagerInfo.RecordCount = grid.ExecuteScalar<long>("RecordCount");
+                        pagerInfo.RecordCount = grid.ExecuteScalar<long>(RECORD_COUNT_RESULT_COLUMN);
                     }
                     return dataList;
                 }
@@ -741,7 +741,7 @@ namespace Rampage.Data.Client
         /// </summary>
         /// <typeparam name="M">模型-表映射类型 / model-table mapping type</typeparam>
         /// <typeparam name="R">结果类型 / result type</typeparam>
-        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（当前实现按列名 "RecordCount" 读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (the current implementation reads the column named "RecordCount")</param>
+        /// <param name="pagerInfo">分页信息：偏移按 (PageIndex-1)*PageSize 计算；RecordCount 未预置时从同批 GridReader 追加的 COUNT 结果集回填（按 RECORD_COUNT_RESULT_COLUMN 常量列读取）/ pager info: the offset is (PageIndex-1)*PageSize; when RecordCount is not preset it is filled from the appended COUNT result set of the same grid reader (read via the RECORD_COUNT_RESULT_COLUMN constant)</param>
         /// <param name="filter">数据过滤器 / the data filter</param>
         /// <param name="commandTimeout">命令超时秒数，null 用驱动默认 / command timeout in seconds; null uses the provider default</param>
         /// <param name="cancellationToken">取消令牌 / cancellation token</param>
@@ -760,7 +760,7 @@ namespace Rampage.Data.Client
                     List<R> dataList = grid.SelectList<R>();
                     if (pagerInfo.RecordCount == null)
                     {
-                        pagerInfo.RecordCount = grid.ExecuteScalar<long>("RecordCount");
+                        pagerInfo.RecordCount = grid.ExecuteScalar<long>(RECORD_COUNT_RESULT_COLUMN);
                     }
                     return dataList;
                 }

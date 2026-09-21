@@ -196,13 +196,11 @@ namespace Rampage.RedisLibrary
         }
 
         /// <summary>
-        /// 
+        /// 异步读取字符串 / Asynchronously get a string value
         /// </summary>
-        /// <param name="redisKey"></param>
-        /// <param name="redisValue"></param>
-        /// <param name="expiry"></param>
-        /// <returns></returns>
-        public async Task<string?> StringGetAsync(string redisKey, string redisValue, TimeSpan? expiry = null)
+        /// <param name="redisKey">键（自动加 Prefix）/ Key (prefix applied automatically)</param>
+        /// <returns>值；键不存在时为 null / The value; null when the key does not exist</returns>
+        public async Task<string?> StringGetAsync(string redisKey)
         {
             redisKey = AddKeyPrefix(redisKey);
             return await Db.StringGetAsync(redisKey);
@@ -228,12 +226,16 @@ namespace Rampage.RedisLibrary
         /// </summary>
         /// <typeparam name="T">目标类型 / Target type</typeparam>
         /// <param name="redisKey">键（自动加 Prefix）/ Key (prefix applied automatically)</param>
-        /// <param name="expiry">当前未使用，为兼容既有签名保留 / Currently unused; kept for signature compatibility</param>
+        /// <param name="expiry">命中后刷新的过期时间（滑动过期）；null 不刷新 / When set, refreshes the TTL after a hit (sliding expiry); null leaves the TTL untouched</param>
         /// <returns>反序列化结果；键不存在或内容为空返回 default(T) / The deserialized object; default(T) when missing or empty</returns>
         public async Task<T?> StringGetAsync<T>(string redisKey, TimeSpan? expiry = null)
         {
             redisKey = AddKeyPrefix(redisKey);
             string? json = await Db.StringGetAsync(redisKey);
+            if (expiry != null)
+            {
+                await Db.KeyExpireAsync(redisKey, expiry);
+            }
             return string.IsNullOrEmpty(json) ? default(T) : RedisFactory.Deserialize<T>(json);
         }
 
@@ -320,9 +322,8 @@ namespace Rampage.RedisLibrary
         /// </summary>
         /// <param name="redisKey">键（自动加 Prefix）/ Key (prefix applied automatically)</param>
         /// <param name="hashField">字段名数组 / Field names</param>
-        /// <param name="value">未使用（疑为复制残留，为兼容既有签名保留）/ Unused (likely a copy-paste leftover; kept for signature compatibility)</param>
         /// <returns>与字段顺序对应的值，不存在的字段为 Null / Values in field order; missing fields are Null</returns>
-        public RedisValue[] HashGet(string redisKey, RedisValue[] hashField, string value)
+        public RedisValue[] HashGet(string redisKey, RedisValue[] hashField)
         {
             redisKey = AddKeyPrefix(redisKey);
             return Db.HashGet(redisKey, hashField);
@@ -458,9 +459,8 @@ namespace Rampage.RedisLibrary
         /// </summary>
         /// <param name="redisKey">键（自动加 Prefix）/ Key (prefix applied automatically)</param>
         /// <param name="hashField">字段名数组 / Field names</param>
-        /// <param name="value">未使用（疑为复制残留，为兼容既有签名保留）/ Unused (likely a copy-paste leftover; kept for signature compatibility)</param>
         /// <returns>与字段顺序对应的值，不存在的字段为 Null / Values in field order; missing fields are Null</returns>
-        public async Task<IEnumerable<RedisValue>> HashGetAsync(string redisKey, RedisValue[] hashField, string value)
+        public async Task<IEnumerable<RedisValue>> HashGetAsync(string redisKey, RedisValue[] hashField)
         {
             redisKey = AddKeyPrefix(redisKey);
             return await Db.HashGetAsync(redisKey, hashField);
@@ -831,16 +831,15 @@ namespace Rampage.RedisLibrary
         }
 
         /// <summary>
-        /// 返回有序集合的元素个数
-        /// Return the number of elements in the ordered set
+        /// 从有序集合移除成员 / Remove a member from the sorted set
         /// </summary>
-        /// <param name="redisKey"></param>
-        /// <param name="memebr"></param>
-        /// <returns></returns>
-        public bool SortedSetLength(string redisKey, string memebr)
+        /// <param name="redisKey">键（自动加 Prefix）/ Key (prefix applied automatically)</param>
+        /// <param name="member">成员 / The member</param>
+        /// <returns>是否移除了成员（成员不存在返回 false）/ Whether a member was removed (false when absent)</returns>
+        public bool SortedSetRemove(string redisKey, string member)
         {
             redisKey = AddKeyPrefix(redisKey);
-            return Db.SortedSetRemove(redisKey, memebr);
+            return Db.SortedSetRemove(redisKey, member);
         }
 
         /// <summary>

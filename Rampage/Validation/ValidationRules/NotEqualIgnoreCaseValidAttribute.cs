@@ -6,8 +6,7 @@ namespace Rampage.Validation
     /// 忽略大小写的不等于验证（仅支持字符串属性）/ Case-insensitive not-equal validation (string properties only)
     /// </summary>
     /// <remarks>
-    /// 注意：字符串分支当前实现为"忽略大小写与 Data 相等时返回 true（通过）"，与类名语义相反，疑似缺陷；
-    /// Note: the string branch currently returns true (pass) when the value EQUALS Data ignoring case — the opposite of the class's intent; likely a defect.
+    /// 字符串忽略大小写与 Data 不相等时通过。Passes when the string differs from Data ignoring case.
     /// 非字符串属性一律按 Required 决定通过与否。Non-string properties always resolve by Required.
     /// </remarks>
     public class NotEqualIgnoreCaseValidAttribute : ValidationAttributeBase
@@ -27,7 +26,7 @@ namespace Rampage.Validation
             switch (typeCode)
             {
                 case TypeCode.String:
-                    return string.Compare(Data.ToString(), s, true) == 0;
+                    return string.Compare(Data.ToString(), s, true) != 0;
                 default:
                     return !Required;
             }

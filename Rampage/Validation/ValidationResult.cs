@@ -17,7 +17,7 @@ namespace Rampage.Validation
         }
 
         /// <summary>
-        /// 
+        /// 是否存在警告级失败（不影响的整体成功状态）/ Whether any warning-level failure occurred (does not affect Success)
         /// </summary>
         public bool HasWarnings
         {

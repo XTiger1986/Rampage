@@ -51,9 +51,6 @@ namespace Rampage.Web.TimeZone
                 return;
             }
 
-            TimeZoneInfo sourceTz = TimeZoneInfo.FindSystemTimeZoneById(_sourceTimeZoneId);
-            TimeZoneInfo targetTz = TimeZoneInfo.FindSystemTimeZoneById(targetTimeZoneId);
-
             // 将 DateTimeOffset 的日期时间视为源时区时间，忽略原始偏移
             DateTime dateTime = value.DateTime; // Kind 通常为 Unspecified
             DateTime converted = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(dateTime, _sourceTimeZoneId, targetTimeZoneId);

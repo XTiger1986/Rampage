@@ -138,26 +138,26 @@ namespace Rampage.Web.Component
 
         private string? _countInfo;
         /// <summary>
-        /// 统计信息内容格式
+        /// 统计信息内容格式（{0} 为总条数占位符），未设置时用默认文案 / The count-info text format ({0} is the record-count placeholder); falls back to the default text when unset
         /// </summary>
         public string? CountInfo
         {
             get
             {
-                return string.IsNullOrEmpty(_countInfo) ? "共{0}条数据" : string.Empty;
+                return string.IsNullOrEmpty(_countInfo) ? "共{0}条数据" : _countInfo;
             }
             set { _countInfo = value; }
         }
 
         private string? _noDataInfo;
         /// <summary>
-        /// 无数据信息
+        /// 无数据提示文案，未设置时用默认文案 / The no-data text; falls back to the default text when unset
         /// </summary>
         public string? NoDataInfo
         {
             get
             {
-                return string.IsNullOrEmpty(_noDataInfo) ? "暂无数据" : string.Empty;
+                return string.IsNullOrEmpty(_noDataInfo) ? "暂无数据" : _noDataInfo;
             }
             set { _noDataInfo = value; }
         }

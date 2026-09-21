@@ -818,9 +818,15 @@ namespace Rampage.Hierarchy
             return DatabaseClient.DeleteByIdAsync<M>(key, commandTimeout, cancellationToken);
         }
 
+        /// <summary>异步按实体主键值删除一条数据（从实体读取主键后转发给按主键删除）/ Asynchronously delete one row by the entity's primary key (reads the key from the entity, then forwards to the by-key delete)</summary>
+        /// <param name="data">携带主键值的实体 / the entity carrying the primary key value</param>
+        /// <param name="commandTimeout">命令超时秒数；null 使用默认值 / command timeout in seconds; null for default</param>
+        /// <param name="cancellationToken">取消令牌 / cancellation token</param>
+        /// <returns>是否成功 / task producing true on success</returns>
+        /// <exception cref="SuperException">实体未声明主键时抛出 / thrown when the entity declares no primary key</exception>
         public Task<bool> DeleteByIdAsync(M data, int? commandTimeout = null, CancellationToken cancellationToken = default)
         {
-            return DatabaseClient.DeleteByIdAsync<M>(data, commandTimeout, cancellationToken);
+            return DatabaseClient.DeleteByIdAsync<M>(GetPrimaryKeyValue(data)!, commandTimeout, cancellationToken);
         }
 
         /// <summary>异步按 LambdaWrapper 条件删除数据 / Asynchronously delete rows matching a LambdaWrapper</summary>

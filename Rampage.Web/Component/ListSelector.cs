@@ -189,8 +189,7 @@ namespace Rampage.Web.Component
         /// </summary>
         /// <remarks>
         /// 若 <see cref="Data"/>、<see cref="ValueField"/> 或 <see cref="TextField"/> 未设置则直接返回（<see cref="Items"/> 保持 null）；
-        /// 否则按值/文本字段提取键值对生成 <see cref="Items"/>（未设置 <see cref="RemoveValues"/> 时重复值只保留首个；
-        /// 设置了 <see cref="RemoveValues"/> 时其中的值会被排除，但重复值不再去重，数据本身重复会抛异常），
+        /// 否则按值/文本字段提取键值对生成 <see cref="Items"/>（重复值只保留首个；设置了 <see cref="RemoveValues"/> 时其中的值会被排除），
         /// 并依据 <see cref="DefaultText"/> 设置 <see cref="UseDefault"/>；应在各属性赋值完成后调用。
         /// </remarks>
         public void Init()
@@ -230,7 +229,7 @@ namespace Rampage.Web.Component
                             break;
                         }
                     }
-                    if (false == isRemove)
+                    if (false == isRemove && !this.Items.ContainsKey(value))
                     {
                         this.Items.Add(value, text);
                     }

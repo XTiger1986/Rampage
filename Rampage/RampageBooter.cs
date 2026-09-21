@@ -2,7 +2,6 @@
 using Rampage.Configuration;
 using Rampage.Data.Client;
 using Rampage.DependencyInjection;
-using Rampage.ExceptionExtensions;
 using Rampage.Hierarchy;
 using Rampage.Reflection;
 using Rampage.Threading;
@@ -15,9 +14,9 @@ namespace Rampage
     /// Rampage 应用程序启动器 / Rampage application launcher
     /// </summary>
     /// <remarks>
-    /// <see cref="Run{Z}"/> 是框架唯一入口：先扫描程序集收集服务类型，再按固定顺序完成七步初始化，顺序不可调换
+    /// <see cref="Run{Z}(RampageOptions)"/>（及其字符串参数重载）是框架唯一入口：先扫描程序集收集服务类型，再按固定顺序完成七步初始化，顺序不可调换
     /// （InitializeDatabaseClients 依赖 InitializeGlobalConfiguration 加载的数据库配置）。
-    /// Run&lt;Z&gt; is the only entry point of the framework: it scans assemblies to collect service types first, then performs
+    /// Run&lt;Z&gt; (the options overload and its string-array overload) is the only entry point of the framework: it scans assemblies to collect service types first, then performs
     /// the seven initialization steps in a fixed order that must not change (InitializeDatabaseClients depends on the
     /// database configuration loaded by InitializeGlobalConfiguration).
     /// </remarks>
@@ -199,6 +198,7 @@ namespace Rampage
         {
             get; private set;
         } = default!;
+
         /// <summary>
         /// 应用根级 IServiceProvider / Application root service provider
         /// </summary>
@@ -239,17 +239,20 @@ namespace Rampage
         private static bool IsInitialized = false;
 
         /// <summary>
-        /// 启动 Rampage 应用程序（框架唯一入口），初始化并运行后返回应用实例 / Boots the Rampage application (the only framework entry point) and returns the application instance after initialization and Run
+        /// 启动选项 / The boot options
+        /// </summary>
+        public static RampageOptions BootOptions
+        {
+            get; private set;
+        }
+
+        /// <summary>
+        /// 以原始启动参数启动 Rampage 应用程序（框架唯一入口），初始化并运行后返回应用实例 /
+        /// Boots the Rampage application with raw boot arguments (the only framework entry point) and returns the application instance after initialization and Run
         /// </summary>
         /// <remarks>
-        /// 通过 EmitTool.CreateModel 动态构造 Z 的实例；随后按固定顺序初始化且不可调换：
-        /// InitializeEnvironment → LoadServices（程序集扫描）→ InitializeLogger → InitializeGlobalConfiguration →
-        /// InitializeServiceContainer → InitializeDatabaseClients → InitializeServices → InitializeApplicationProvider → Run。
-        /// 其中 InitializeDatabaseClients 依赖第三步加载的数据库配置，必须在其后执行。
-        /// The instance of Z is built dynamically by EmitTool.CreateModel; initialization then runs in a fixed order that must not change:
-        /// InitializeEnvironment, LoadServices (assembly scanning), InitializeLogger, InitializeGlobalConfiguration,
-        /// InitializeServiceContainer, InitializeDatabaseClients, InitializeServices, InitializeApplicationProvider, Run.
-        /// InitializeDatabaseClients depends on the database configuration loaded in the third step and must run after it.
+        /// 直接转发到 <see cref="Run{Z}(RampageOptions)"/>（未显式指定环境名，环境名由 InitializeEnvironment 从 args 解析）。
+        /// Forwards directly to <see cref="Run{Z}(RampageOptions)"/> with no explicit environment name, so the environment is resolved from args by InitializeEnvironment.
         /// </remarks>
         /// <typeparam name="Z">应用类型，须实现 IRampageApplication / Application type implementing IRampageApplication</typeparam>
         /// <param name="args">启动参数，args[0] 为环境名 / Boot arguments where args[0] is the environment name</param>
@@ -257,14 +260,50 @@ namespace Rampage
         /// <exception cref="InvalidOperationException">应用已被初始化时再次调用 / Thrown when the application has already been initialized</exception>
         public static Z Run<Z>(string[] args) where Z : IRampageApplication
         {
+            RampageOptions options = new RampageOptions(args);
+            return Run<Z>(options);
+        }
+
+        /// <summary>
+        /// 以启动选项启动 Rampage 应用程序（框架唯一入口），初始化并运行后返回应用实例 /
+        /// Boots the Rampage application with boot options (the only framework entry point) and returns the application instance after initialization and Run
+        /// </summary>
+        /// <remarks>
+        /// 环境名优先级：<see cref="RampageOptions.EnvironmentName"/> 非空时直接采用，否则由应用的 InitializeEnvironment 从 RawArgs 解析。
+        /// 通过 EmitTool.CreateModel 动态构造 Z 的实例；随后按固定顺序初始化且不可调换：
+        /// InitializeEnvironment → LoadServices（程序集扫描）→ InitializeLogger → InitializeGlobalConfiguration →
+        /// InitializeServiceContainer → InitializeDatabaseClients → InitializeServices → InitializeApplicationProvider → Run。
+        /// 其中 InitializeDatabaseClients 依赖第三步加载的数据库配置，必须在其后执行。
+        /// Environment precedence: <see cref="RampageOptions.EnvironmentName"/> wins when non-null, otherwise the application's InitializeEnvironment parses it from RawArgs.
+        /// The instance of Z is built dynamically by EmitTool.CreateModel; initialization then runs in a fixed order that must not change:
+        /// InitializeEnvironment, LoadServices (assembly scanning), InitializeLogger, InitializeGlobalConfiguration,
+        /// InitializeServiceContainer, InitializeDatabaseClients, InitializeServices, InitializeApplicationProvider, Run.
+        /// InitializeDatabaseClients depends on the database configuration loaded in the third step and must run after it.
+        /// </remarks>
+        /// <typeparam name="Z">应用类型，须实现 IRampageApplication / Application type implementing IRampageApplication</typeparam>
+        /// <param name="options">启动选项 / The boot options</param>
+        /// <returns>初始化完成并已执行 Run 的应用实例 / The initialized application instance after Run has executed</returns>
+        /// <exception cref="InvalidOperationException">应用已被初始化时再次调用 / Thrown when the application has already been initialized</exception>
+        public static Z Run<Z>(RampageOptions options) where Z : IRampageApplication
+        {
             if (IsInitialized)
             {
                 throw new InvalidOperationException("RampageApplication alread Initialized!");
             }
 
+            BootOptions = options;
             Application = EmitTool.CreateModel<Z>()!;
 
-            string environmentName = Application.InitializeEnvironment(args);
+            string[] args = options.RawArgs;
+            string environmentName;
+            if (!string.IsNullOrEmpty(options.EnvironmentName))
+            {
+                environmentName = options.EnvironmentName;
+            }
+            else
+            {
+                environmentName = Application.InitializeEnvironment(args);
+            }
             LoadServices(environmentName);
 
             Application.InitializeLogger(args);
