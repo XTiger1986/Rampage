@@ -66,9 +66,9 @@ namespace Rampage.AppLog
 
         /// <summary>
         /// 填充日志的调用栈、类名与方法名（仅覆盖空缺字段）：用 new StackTrace(2, false) 跳过本方法与 GetLog 两帧
-        /// 且不采集文件行号，再跳过 Rampage.Log 命名空间内的帧，取真实调用方的类名与方法名。
+        /// 且不采集文件行号，再跳过 Rampage.AppLog 命名空间内的帧，取真实调用方的类名与方法名。
         /// / Fill the log's stack trace, class and method (empty fields only): new StackTrace(2, false) skips this method
-        /// and GetLog without file info, then frames inside the Rampage.Log namespace are skipped to find the real caller.
+        /// and GetLog without file info, then frames inside the Rampage.AppLog namespace are skipped to find the real caller.
         /// </summary>
         /// <param name="log">待填充的日志实体 / the log entity to fill</param>
         internal static void SetLogStackTraceData(SystemLog log)
@@ -95,7 +95,7 @@ namespace Rampage.AppLog
                     {
                         continue;
                     }
-                    if (declaring.Namespace != null && declaring.Namespace.StartsWith("Rampage.Log", StringComparison.Ordinal))
+                    if (declaring.Namespace != null && declaring.Namespace.StartsWith("Rampage.AppLog", StringComparison.Ordinal))
                     {
                         continue;
                     }
