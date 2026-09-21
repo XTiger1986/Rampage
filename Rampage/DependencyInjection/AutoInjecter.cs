@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Rampage.AppLog;
 using Rampage.Reflection;
 using System;
 using System.Reflection;
@@ -237,7 +238,7 @@ namespace Rampage.DependencyInjection
                 throw new AutoInjectException(hostType, memberName, serviceType, message, inner);
             }
 
-            Rampage.Log.RampageLogger.Error(message, inner ?? new InvalidOperationException(message));
+            RampageLogger.Error(message, inner ?? new InvalidOperationException(message));
         }
 
         /// <summary>

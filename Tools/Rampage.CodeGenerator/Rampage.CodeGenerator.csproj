@@ -16,10 +16,34 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="config\app.Development.json" />
+    <None Remove="config\app.json" />
+    <None Remove="config\app.Production.json" />
+    <None Remove="config\log4net.config" />
+    <None Remove="config\log4net.Development.config" />
+    <None Remove="config\log4net.Production.config" />
     <None Remove="Templates\RampageFrame\template.json" />
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="config\app.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="config\app.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="config\app.Production.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="config\log4net.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="config\log4net.Development.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="config\log4net.Production.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Templates\RampageFrame\template.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -58,27 +82,6 @@
     <ProjectReference Include="..\..\DatabaseLibrary\Rampage.DatabaseLibrary.PostgreSQL\Rampage.DatabaseLibrary.PostgreSQL.csproj" />
     <ProjectReference Include="..\..\DatabaseLibrary\Rampage.DatabaseLibrary.Oracle\Rampage.DatabaseLibrary.Oracle.csproj" />
     <ProjectReference Include="..\..\Rampage\Rampage.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="config\app.Development.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="config\app.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="config\app.Production.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="config\log4net.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="config\log4net.Development.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="config\log4net.Production.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

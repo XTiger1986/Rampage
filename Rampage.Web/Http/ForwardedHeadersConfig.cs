@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
-using Rampage.Log;
+using Rampage.AppLog;
 using Rampage.Web.Utilities;
 using System;
 using System.Net;

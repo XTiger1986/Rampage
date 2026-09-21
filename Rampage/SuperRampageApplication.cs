@@ -1,11 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Rampage.AppLog;
 using Rampage.Data;
 using Rampage.Data.Client;
 using Rampage.DependencyInjection;
 using Rampage.Dynamic;
 using Rampage.Extensions;
 using Rampage.Localization;
-using Rampage.Log;
 using Rampage.Net;
 using Rampage.Reflection;
 using Rampage.Utilities;

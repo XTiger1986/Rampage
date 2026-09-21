@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Rampage.AppLog;
 using Rampage.Json;
-using Rampage.Log;
 using StackExchange.Redis;
 using System;
 using System.Collections.Concurrent;

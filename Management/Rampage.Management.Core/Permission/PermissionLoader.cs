@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Rampage.AppLog;
 using Rampage.Localization;
-using Rampage.Log;
 using Rampage.Management.Configuration;
 using Rampage.Model;
 using Rampage.Reflection;

@@ -1,7 +1,7 @@
-﻿using Rampage.Data.Filter;
+﻿using Rampage.AppLog;
+using Rampage.Data.Filter;
 using Rampage.Data.Query;
 using Rampage.ExceptionExtensions;
-using Rampage.Log;
 using Rampage.Reflection;
 using Rampage.Utilities;
 using System;

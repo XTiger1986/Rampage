@@ -1,13 +1,12 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Rampage.Log;
+using Rampage.AppLog;
 using Rampage.Management.Dto;
 using Rampage.Management.Mvc;
 using Rampage.Management.Permission;
 using Rampage.Management.VO;
 using Rampage.Model;
 using Rampage.Reflection;
-using Rampage.Utilities;
 using Rampage.Validation;
 using Rampage.Web.Extensions;
 using System;

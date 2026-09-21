@@ -1,11 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Rampage;
+using Rampage.AppLog;
 using Rampage.DependencyInjection;
 using Rampage.Localization;
-using Rampage.Log;
-using Rampage.Model;
-using Rampage.Web.Extensions;
 using System;
 
 namespace Rampage.Web.Mvc

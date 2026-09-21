@@ -1,8 +1,8 @@
-﻿using Rampage.CodeGenerator.Model;
+﻿using Rampage.AppLog;
+using Rampage.CodeGenerator.Model;
 using Rampage.CodeGenerator.Service;
 using Rampage.Data;
 using Rampage.DependencyInjection;
-using Rampage.Log;
 using Rampage.Utilities;
 using System;
 

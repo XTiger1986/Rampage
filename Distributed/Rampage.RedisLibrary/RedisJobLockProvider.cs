@@ -1,8 +1,6 @@
-using Rampage.Log;
+using Rampage.AppLog;
 using Rampage.Scheduling;
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Rampage.RedisLibrary
 {

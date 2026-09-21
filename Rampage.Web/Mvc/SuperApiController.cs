@@ -1,11 +1,8 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Rampage.Caching;
 using Rampage.DependencyInjection;
-using Rampage;
 using Rampage.Localization;
-using Rampage.Log;
 using Rampage.Utilities;
 using Rampage.Web.Caching;
 using Rampage.Web.Extensions;

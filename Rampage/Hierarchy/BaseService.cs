@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Rampage.Caching;
 using Rampage.Data;
 using Rampage.Data.Client;
@@ -6,7 +5,6 @@ using Rampage.Data.Filter;
 using Rampage.Data.Query;
 using Rampage.DependencyInjection;
 using Rampage.Localization;
-using Rampage.Log;
 using System;
 using System.Collections;
 using System.Data;

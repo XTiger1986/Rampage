@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Options;
+using Rampage.AppLog;
 using Rampage.Idempotency;
 using Rampage.Model;
 using System;
@@ -153,7 +154,7 @@ namespace Rampage.Web.Mvc
             try { _store.Set(storeKey, json, ttl); }
             catch (Exception ex)
             {
-                Log.RampageLogger.Error($"Idempotency store Set failed for '{storeKey}'.", ex);
+                RampageLogger.Error($"Idempotency store Set failed for '{storeKey}'.", ex);
             }
         }
 
@@ -162,7 +163,7 @@ namespace Rampage.Web.Mvc
         /// </summary>
         private bool HandleStoreFailure(ActionExecutingContext context, Exception ex, string operation)
         {
-            Log.RampageLogger.Error($"Idempotency store {operation} failed (failOpen={_options.FailOpenOnStoreError}).", ex);
+            RampageLogger.Error($"Idempotency store {operation} failed (failOpen={_options.FailOpenOnStoreError}).", ex);
             if (_options.FailOpenOnStoreError)
             {
                 return true;

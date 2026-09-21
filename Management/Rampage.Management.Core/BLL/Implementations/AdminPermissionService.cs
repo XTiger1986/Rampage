@@ -1,7 +1,7 @@
-﻿using Rampage.Data.Query;
+﻿using Rampage.AppLog;
+using Rampage.Data.Query;
 using Rampage.DependencyInjection;
 using Rampage.Enums;
-using Rampage.Log;
 using Rampage.Management.Configuration;
 using Rampage.Management.DAL;
 using Rampage.Management.Dto;

@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
-using Rampage.DependencyInjection;
+using Rampage.AppLog;
 using Rampage.Json;
-using Rampage.Log;
 using Rampage.Model;
 using Rampage.Utilities;
 using Rampage.Web.Extensions;

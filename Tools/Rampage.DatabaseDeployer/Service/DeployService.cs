@@ -10,10 +10,10 @@ using Rampage.DatabaseLibrary.PostgreSQL;
 using Oracle.ManagedDataAccess.Client;
 using Rampage.DatabaseLibrary.Oracle;
 using Rampage.DatabaseLibrary.Sqlite;
-using Rampage.Log;
 using System;
 using System.Reflection;
 using Rampage.Hierarchy;
+using Rampage.AppLog;
 
 namespace Rampage.DatabaseDeployer.Service
 {

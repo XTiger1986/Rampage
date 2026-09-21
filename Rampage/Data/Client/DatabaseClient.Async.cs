@@ -1,3 +1,4 @@
+using Rampage.AppLog;
 using Rampage.Data.Filter;
 using Rampage.Data.Query;
 using Rampage.Reflection;
@@ -7,8 +8,6 @@ using System.Collections;
 using System.Data;
 using System.Data.Common;
 using System.Linq.Expressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Rampage.Data.Client
 {
@@ -125,7 +124,7 @@ namespace Rampage.Data.Client
                     }
                     catch (Exception rollbackEx)
                     {
-                        Log.RampageLogger.Error($"DatabaseClient '{Name}': rollback after failed commit also failed.", rollbackEx);
+                        RampageLogger.Error($"DatabaseClient '{Name}': rollback after failed commit also failed.", rollbackEx);
                     }
                     throw;
                 }

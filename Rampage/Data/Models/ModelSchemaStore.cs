@@ -1,5 +1,4 @@
-﻿using Rampage.Log;
-using Rampage.Reflection;
+﻿using Rampage.AppLog;
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;

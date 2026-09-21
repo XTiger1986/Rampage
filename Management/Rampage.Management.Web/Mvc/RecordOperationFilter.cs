@@ -2,8 +2,8 @@
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Rampage.AppLog;
 using Rampage.DependencyInjection;
-using Rampage.Log;
 using Rampage.Management.BLL;
 using Rampage.Management.Core.BLL;
 using Rampage.Management.Dto;

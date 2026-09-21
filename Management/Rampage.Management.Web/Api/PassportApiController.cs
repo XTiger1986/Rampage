@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Rampage.Log;
+using Rampage.AppLog;
 using Rampage.Management.Configuration;
 using Rampage.Management.Dto;
 using Rampage.Management.VO;

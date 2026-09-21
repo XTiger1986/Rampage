@@ -1,13 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.DependencyInjection;
-using Rampage;
 using Rampage.Caching;
 using Rampage.DependencyInjection;
 using Rampage.ExceptionExtensions;
 using Rampage.Localization;
-using Rampage.Log;
 using Rampage.Model;
 using Rampage.Utilities;
 using Rampage.Web.Caching;

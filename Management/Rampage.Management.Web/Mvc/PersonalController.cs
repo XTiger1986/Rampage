@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Rampage.Log;
+using Rampage.AppLog;
 using Rampage.Management.Dto;
 using Rampage.Management.Permission;
 using Rampage.Model;

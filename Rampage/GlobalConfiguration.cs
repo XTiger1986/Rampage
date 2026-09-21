@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
+using Rampage.AppLog;
 using Rampage.Caching;
-using Rampage.Log;
 using System;
 
 namespace Rampage

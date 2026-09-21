@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Rampage.AppLog;
 using Rampage.Data;
 using Rampage.Data.Query;
 using Rampage.DependencyInjection;
 using Rampage.Enums;
 using Rampage.Extensions;
 using Rampage.Json;
-using Rampage.Log;
 using Rampage.Management.Configuration;
 using Rampage.Management.DAL;
 using Rampage.Management.Dto;

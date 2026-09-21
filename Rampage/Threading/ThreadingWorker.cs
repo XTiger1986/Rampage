@@ -1,4 +1,4 @@
-﻿using Rampage.Log;
+﻿using Rampage.AppLog;
 using System;
 
 namespace Rampage.Threading
