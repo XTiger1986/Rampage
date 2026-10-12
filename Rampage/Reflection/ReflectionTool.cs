@@ -62,12 +62,12 @@ namespace Rampage.Reflection
         #region TypeDescriptor
 
         /// <summary>
-        /// 类型详情缓存（键为类型 FullName，进程内只增不减） / Type descriptor cache keyed by type full name (append-only per process)
+        /// 类型详情缓存按运行时 Type 隔离，防止不同程序集的同名匿名类型混用 SQL 参数元数据。
         /// </summary>
-        private static readonly ConcurrentDictionary<string, TypeDescriptor> TypeDescriptorDict = new ConcurrentDictionary<string, TypeDescriptor>();
+        private static readonly ConcurrentDictionary<Type, TypeDescriptor> TypeDescriptorDict = new ConcurrentDictionary<Type, TypeDescriptor>();
 
         /// <summary>
-        /// 获取类型详情（含 NonPublic 成员），按类型 FullName 缓存 / Get the type descriptor (including non-public members), cached by type full name
+        /// 获取类型详情（含 NonPublic 成员），按运行时 Type 缓存，保留程序集和加载上下文身份。
         /// </summary>
         /// <param name="type">目标类型 / The target type</param>
         /// <returns>类型的元数据描述 / The type descriptor</returns>
@@ -77,8 +77,7 @@ namespace Rampage.Reflection
         /// </remarks>
         public static TypeDescriptor GetTypeDescriptor(Type type)
         {
-            string typeName = type.FullName!;
-            return TypeDescriptorDict.GetOrAdd(typeName, _ => new TypeDescriptor
+            return TypeDescriptorDict.GetOrAdd(type, _ => new TypeDescriptor
             {
                 InterfaceList = type.GetInterfaces().ToList(),
                 PropertyList = type.GetProperties(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).ToList(),

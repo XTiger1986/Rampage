@@ -14,6 +14,12 @@ namespace Rampage.Drawing.VerificationCode
     ///
     ///  备注：001–009 各有专用快捷方法；VerificationCode010 无专用快捷方法，
     ///  需通过泛型 CreateVerificationCodeImage&lt;T&gt; 或随机入口调用。
+    ///  点选式验证码（点选文字 / 点选单词）为独立契约（答案为坐标范围而非字符串），不进入
+    ///  AllCodeTypes 随机池，分别经 CreateClickVerificationCodeImage /
+    ///  CreateWordClickVerificationCodeImage 调用。
+    ///  Click captchas (characters / words) use a separate contract (regions instead of a string answer),
+    ///  never join the AllCodeTypes random pool, and are created via the dedicated
+    ///  CreateClickVerificationCodeImage / CreateWordClickVerificationCodeImage.
     /// </remarks>
     public class VerificationCodeManager
     {
@@ -192,6 +198,43 @@ namespace Rampage.Drawing.VerificationCode
         {
             return CreateVerificationCode<VerificationCode009>().CreateImage(out resultCode);
         }
-       
+
+        /// <summary>
+        /// 创建点选验证码图片（依次点击汉字；独立契约，不进入 AllCodeTypes 随机池） /
+        /// Create a click captcha image (click the characters in order; separate contract, never in the AllCodeTypes pool).
+        /// </summary>
+        /// <remarks>
+        /// 使用方式：图片字节直接输出给前端展示；result.ToJson() 序列化后存入原有验证码存储位
+        /// （替代普通验证码的字符串答案）；校验时 ClickCodeResult.FromJson(json).Verify(前端点数组)。
+        /// Usage: stream the bytes to the frontend; store result.ToJson() where the plain code string used to live;
+        /// validate via ClickCodeResult.FromJson(json).Verify(frontendPoints).
+        /// </remarks>
+        /// <param name="result">输出：验证结果（目标字串 + 各目标字可点击坐标范围，按提示顺序） /
+        /// Output: the verification result (the target code plus each target's clickable region, in prompt order).</param>
+        /// <returns>PNG 图片字节数组 / The PNG image bytes.</returns>
+        public static byte[] CreateClickVerificationCodeImage(out ClickCodeResult result)
+        {
+            return new ClickVerificationCode().CreateImage(out result);
+        }
+
+        /// <summary>
+        /// 创建英文单词点选验证码图片（依次点击提示单词；独立契约，不进入 AllCodeTypes 随机池） /
+        /// Create an English word click captcha image (click the prompted words in order; separate contract, never in the AllCodeTypes pool).
+        /// </summary>
+        /// <remarks>
+        /// 默认在“2 目标词+2 干扰词”与“3 目标词+1 干扰词”间随机取词组合；词源自内置常用词表，
+        /// 可经 ClickVerificationCodeOptions.EnglishWordPool 覆盖。存储与校验方式与中文点选一致。
+        /// The count mix randomly alternates between "2 targets + 2 distractors" and "3 targets + 1 distractor";
+        /// words come from the built-in pool, overridable via ClickVerificationCodeOptions.EnglishWordPool.
+        /// Storage and validation match the character mode.
+        /// </remarks>
+        /// <param name="result">输出：验证结果（目标词串 + 各目标词可点击坐标范围，按提示顺序） /
+        /// Output: the verification result (the target code plus each target word's clickable region, in prompt order).</param>
+        /// <returns>PNG 图片字节数组 / The PNG image bytes.</returns>
+        public static byte[] CreateWordClickVerificationCodeImage(out ClickCodeResult result)
+        {
+            return new WordClickVerificationCode().CreateImage(out result);
+        }
+
     }
 }

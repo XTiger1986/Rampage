@@ -1,7 +1,7 @@
 ﻿{
   "DatabaseLibrary": "Rampage.DatabaseLibrary.PostgreSQL",
   "Provider": "PgSqlClient",
-  "ScriptDirectoryPath": "D:\\Studio\\XTiger1986\\Rampage.NaturalistAtlas\\documents\\数据表设计\\自然生物志表设计\\",
+  "ScriptDirectoryPath": "D:\\Studio\\XTiger1986\\Rampage.NaturalistAtlas\\documents\\DatabaseTablesDesign\\NaturalistAtlas.TablesDesign\\",
   "ConnectionString": "Host=127.0.0.1;Port=5432;Database=naturalist;Username=rampage;Password=rampage;",
   "VersionTableName": "rampage_deploy_version",
   "GetVersionSql": "SELECT DbVersion FROM rampage_deploy_version LIMIT 1",

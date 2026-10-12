@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -48,9 +48,9 @@ namespace Rampage.Reflection
             #region Properties
 
             /// <summary>
-            /// 构造委托缓存（键：类型 FullName） / Creator delegate cache (key: type full name)
+            /// 构造委托按运行时 Type 缓存，避免跨程序集同名类型串用。
             /// </summary>
-            private static readonly ConcurrentDictionary<string, Func<Type, object>> ModelCreators = new ConcurrentDictionary<string, Func<Type, object>>();
+            private static readonly ConcurrentDictionary<Type, Func<Type, object>> ModelCreators = new ConcurrentDictionary<Type, Func<Type, object>>();
 
             #endregion
 
@@ -96,8 +96,8 @@ namespace Rampage.Reflection
             /// <returns>新实例 / The new instance</returns>
             internal static object? CreateModel(Type type)
             {
-                // 缓存键为类型 FullName / Cache key is the type full name
-                string key = type.FullName!;
+                // 运行时 Type 隔离程序集及加载上下文身份。
+                Type key = type;
                 var modelCreator = ModelCreators.GetOrAdd(key, _ => CreateModelCreator(type));
                 object? val = modelCreator(type);
                 return val;
@@ -166,9 +166,9 @@ namespace Rampage.Reflection
             #region Properties
 
             /// <summary>
-            /// setter 委托缓存（键：类型名__属性名） / Setter delegate cache (key: TypeName__PropertyName)
+            /// setter 委托缓存（键：运行时 Type + 属性名） / Setter delegate cache (key: runtime Type + property name)
             /// </summary>
-            private static readonly ConcurrentDictionary<string, Func<object, object?, object>> PropertySetters = new ConcurrentDictionary<string, Func<object, object?, object>>();
+            private static readonly ConcurrentDictionary<(Type, string), Func<object, object?, object>> PropertySetters = new ConcurrentDictionary<(Type, string), Func<object, object?, object>>();
 
             #endregion
 
@@ -247,8 +247,8 @@ namespace Rampage.Reflection
             internal static object SetPropertyValue(object model, string propertyName, object? value)
             {
                 Type type = model.GetType();
-                // 缓存键：类型名__属性名 / Cache key: TypeName__PropertyName
-                string key = string.Concat(type.FullName, "__", propertyName);
+                // 缓存键包含运行时 Type，不能按同名类型共享访问委托。
+                var key = (type, propertyName);
                 var propertySetter = PropertySetters.GetOrAdd(key, _ => CreatePropertySetter(type, propertyName));
                 model = propertySetter(model, value);
                 return model;
@@ -286,9 +286,9 @@ namespace Rampage.Reflection
             #region Properties
 
             /// <summary>
-            /// getter 委托缓存（键：类型名__属性名） / Getter delegate cache (key: TypeName__PropertyName)
+            /// getter 委托缓存（键：运行时 Type + 属性名） / Getter delegate cache (key: runtime Type + property name)
             /// </summary>
-            private static readonly ConcurrentDictionary<string, Func<object, object?>> PropertyGetters = new ConcurrentDictionary<string, Func<object, object?>>();
+            private static readonly ConcurrentDictionary<(Type, string), Func<object, object?>> PropertyGetters = new ConcurrentDictionary<(Type, string), Func<object, object?>>();
 
             #endregion
 
@@ -352,8 +352,8 @@ namespace Rampage.Reflection
             internal static object? GetPropertyValue(object model, string propertyName)
             {
                 Type type = model.GetType();
-                // 缓存键：类型名__属性名 / Cache key: TypeName__PropertyName
-                string key = string.Concat(type.FullName, "__", propertyName);
+                // 缓存键包含运行时 Type，不能按同名类型共享访问委托。
+                var key = (type, propertyName);
                 var propertyGetter = PropertyGetters.GetOrAdd(key, _ => CreatePropertyGetter(type, propertyName));
                 object? val = propertyGetter(model);
                 return val;
@@ -404,9 +404,9 @@ namespace Rampage.Reflection
             #region Properties
 
             /// <summary>
-            /// 字段访问器缓存（键：类型名__字段名） / Field accessor cache (key: TypeName__FieldName)
+            /// 字段访问器缓存（键：运行时 Type + 字段名） / Field accessor cache (key: runtime Type + field name)
             /// </summary>
-            private static readonly ConcurrentDictionary<string, FieldAccessor> FieldAccessors = new ConcurrentDictionary<string, FieldAccessor>();
+            private static readonly ConcurrentDictionary<(Type, string), FieldAccessor> FieldAccessors = new ConcurrentDictionary<(Type, string), FieldAccessor>();
 
             #endregion
 
@@ -433,8 +433,8 @@ namespace Rampage.Reflection
             internal static object SetFieldValue(object model, string fieldName, object? value)
             {
                 Type type = model.GetType();
-                // 缓存键：类型名__字段名 / Cache key: TypeName__FieldName
-                string key = string.Concat(type.FullName, "__", fieldName);
+                // 缓存键：运行时 Type + 字段名 / Cache key: runtime Type + field name
+                var key = (type, fieldName);
                 FieldAccessor fieldAccessor = FieldAccessors.GetOrAdd(key, _ => CreateFieldAccessor(type, fieldName));
                 fieldAccessor.Set(model, value);
                 return model;
@@ -449,8 +449,8 @@ namespace Rampage.Reflection
             internal static object? GetFieldValue(object model, string fieldName)
             {
                 Type type = model.GetType();
-                // 缓存键：类型名__字段名 / Cache key: TypeName__FieldName
-                string key = string.Concat(type.FullName, "__", fieldName);
+                // 缓存键：运行时 Type + 字段名 / Cache key: runtime Type + field name
+                var key = (type, fieldName);
                 FieldAccessor fieldAccessor = FieldAccessors.GetOrAdd(key, _ => CreateFieldAccessor(type, fieldName));
                 object? v = fieldAccessor.Get(model);
                 return v;

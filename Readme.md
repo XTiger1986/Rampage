@@ -6,7 +6,7 @@
 
 Rampage is a personally developed, open-source, full-stack general-purpose .NET framework (.NET 8+). Built around the principles of "attribute-driven, convention over configuration", its bootstrapper (`RampageBooter`) combined with Emit dynamic compilation automatically performs service scanning, dependency wiring and database client initialization at startup, letting you build a complete application from the data layer to the web layer with minimal boilerplate.
 
-The framework covers the full chain of enterprise development: **automatic dependency injection, a lightweight ORM (multi-database), declarative HTTP clients, JWT authentication, rate limiting, idempotency, multi-timezone support, Redis distributed components, cron scheduling, resilience (retry/circuit breaker/timeout), an RBAC admin module, and CAPTCHA generation**, plus two development tools: a **code generator** and a **database deployer**.
+The framework covers the full chain of enterprise development: **automatic dependency injection, a lightweight ORM (multi-database), declarative HTTP clients, JWT authentication, rate limiting, idempotency, multi-timezone support, Redis distributed components, cron scheduling, resilience (retry/circuit breaker/timeout), an RBAC admin module, and CAPTCHA generation (image styles plus click-style)**, plus two development tools: a **code generator** and a **database deployer**.
 
 ---
 
@@ -29,7 +29,7 @@ The framework covers the full chain of enterprise development: **automatic depen
 | --- | --- | --- |
 | Core | **Rampage** | DI, data access (ORM), dynamic compilation, HTTP client, caching, configuration, validation, logging, localization, rate limiting, idempotency, utilities |
 | Web | **Rampage.Web** | Web bootstrapper, JWT, filters & middleware, timezone, themes, paging components |
-| Drawing | **Rampage.Drawing** | Cross-platform CAPTCHA via SkiaSharp (10 styles) and image tools |
+| Drawing | **Rampage.Drawing** | Cross-platform CAPTCHA via SkiaSharp (10 styles + click-style) and image tools |
 | Database | **Rampage.Dapper** | Dapper-based data accessor |
 | Database | **Rampage.DatabaseLibrary.MySql / SqlServer / PostgreSQL / Sqlite / Oracle** | Five database providers |
 | Distributed | **Rampage.RedisLibrary** | Redis helper, distributed lock, idempotency store, rate limiter, scheduler lock |
@@ -342,7 +342,7 @@ Implement `IResilienceProvider` to swap the whole thing for Polly or another lib
 | `MapperTool` | Same-name property object mapping |
 | `CsvTool` / `ZipTool` | CSV read/write, ZIP compress/decompress |
 | `SensitiveWordFilter` | Sensitive-word filtering |
-| `VerificationCodeManager` | 10 styles of image CAPTCHA (cross-platform via SkiaSharp) |
+| `VerificationCodeManager` | 10 styles of image CAPTCHA (cross-platform via SkiaSharp); click CAPTCHA (Chinese characters / English words) — click the prompted targets in order, verified against stored click regions (`CreateClickVerificationCodeImage` / `CreateWordClickVerificationCodeImage` / `ClickCodeResult.Verify`) |
 | `StringTool` / `DateTimeTool` / `MathTool` / `ByteTool` / `FileTool` / `PathTool` / `IdTool` | Common everyday utilities |
 
 Also included: structured logging on log4net (per-environment configuration), JSON-based multi-language localization, in-memory cache management and other foundational components.

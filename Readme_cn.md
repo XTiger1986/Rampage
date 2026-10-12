@@ -6,7 +6,7 @@
 
 Rampage 是一套个人开发、开源的全栈式 .NET 通用开发框架（.NET 8+）。它以「特性驱动、约定优于配置」为设计核心，通过启动器（`RampageBooter`）+ Emit 动态编译，在应用启动时自动完成服务扫描、依赖装配与数据库客户端初始化，让你以最少的样板代码搭建从数据层到 Web 层的完整应用。
 
-框架覆盖企业级开发的完整链路：**自动依赖注入、轻量 ORM（多数据库）、声明式 HTTP 客户端、JWT 认证、限流、幂等、多时区、Redis 分布式组件、Cron 定时任务、弹性（重试/熔断/超时）、RBAC 管理后台、验证码**，并配套**代码生成器**与**数据库部署器**两款开发工具。
+框架覆盖企业级开发的完整链路：**自动依赖注入、轻量 ORM（多数据库）、声明式 HTTP 客户端、JWT 认证、限流、幂等、多时区、Redis 分布式组件、Cron 定时任务、弹性（重试/熔断/超时）、RBAC 管理后台、验证码（图形样式+点选式）**，并配套**代码生成器**与**数据库部署器**两款开发工具。
 
 ---
 
@@ -29,7 +29,7 @@ Rampage 是一套个人开发、开源的全栈式 .NET 通用开发框架（.NE
 | --- | --- | --- |
 | 核心 | **Rampage** | 依赖注入、数据访问（ORM）、动态编译、HTTP 客户端、缓存、配置、验证、日志、本地化、限流、幂等、工具集 |
 | Web | **Rampage.Web** | Web 启动器、JWT、过滤器与中间件、时区、主题、分页组件 |
-| 绘图 | **Rampage.Drawing** | 基于 SkiaSharp 的跨平台验证码（10 种样式）、图片工具 |
+| 绘图 | **Rampage.Drawing** | 基于 SkiaSharp 的跨平台验证码（10 种样式+点选式）、图片工具 |
 | 数据库 | **Rampage.Dapper** | 基于 Dapper 的数据访问器 |
 | 数据库 | **Rampage.DatabaseLibrary.MySql / SqlServer / PostgreSQL / Sqlite / Oracle** | 五大数据库 Provider |
 | 分布式 | **Rampage.RedisLibrary** | Redis 助手、分布式锁、幂等存储、分布式限流、调度互斥 |
@@ -342,7 +342,7 @@ var result = await resilience.ExecuteAsync(
 | `MapperTool` | 同名属性对象映射 |
 | `CsvTool` / `ZipTool` | CSV 读写、ZIP 压缩解压 |
 | `SensitiveWordFilter` | 敏感词过滤 |
-| `VerificationCodeManager` | 10 种样式图形验证码（SkiaSharp 跨平台） |
+| `VerificationCodeManager` | 10 种样式图形验证码（SkiaSharp 跨平台）；点选验证码（中文文字 / 英文单词）——依次点击提示目标，按预存坐标范围校验点击顺序（`CreateClickVerificationCodeImage` / `CreateWordClickVerificationCodeImage` / `ClickCodeResult.Verify`） |
 | `StringTool` / `DateTimeTool` / `MathTool` / `ByteTool` / `FileTool` / `PathTool` / `IdTool` | 常用基础工具 |
 
 另有基于 log4net 的结构化日志（多环境配置）、JSON 多语言本地化模块、内存缓存管理等基础组件。

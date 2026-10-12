@@ -241,7 +241,7 @@ namespace Rampage
         /// <summary>
         /// 启动选项 / The boot options
         /// </summary>
-        public static RampageOptions BootOptions
+        public static RampageOptions? BootOptions
         {
             get; private set;
         }
