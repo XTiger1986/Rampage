@@ -14,6 +14,8 @@ namespace Rampage.Drawing.VerificationCode
     ///
     ///  备注：001–009 各有专用快捷方法；VerificationCode010 无专用快捷方法，
     ///  需通过泛型 CreateVerificationCodeImage&lt;T&gt; 或随机入口调用。
+    ///  随机入口另有带 tip 输出的重载（CreateVerificationCodeImage(int[]?, out string?, out string?)），
+    ///  便于调用方展示各样式自己的输入提示（如算术型的"输入计算结果"）。
     ///  点选式验证码（点选文字 / 点选单词）为独立契约（答案为坐标范围而非字符串），不进入
     ///  AllCodeTypes 随机池，分别经 CreateClickVerificationCodeImage /
     ///  CreateWordClickVerificationCodeImage 调用。
@@ -70,51 +72,72 @@ namespace Rampage.Drawing.VerificationCode
         /// <returns></returns>
         public static byte[]? CreateVerificationCodeImage(int[]? codeTypes, out string? resultCode)
         {
-            if(codeTypes == null || codeTypes.Length == 0)
+            return CreateVerificationCodeImage(codeTypes, out resultCode, out _);
+        }
+
+        /// <summary>
+        /// 随机选取一种验证码样式并生成图片，同时输出该样式的输入提示文案 /
+        /// Create a verification code image with a randomly chosen style, also outputting that style's input tip.
+        /// </summary>
+        /// <param name="codeTypes">候选类型编号集合，null/空时回退全集（1–10）/ The candidate type ids; null/empty falls back to the full set (1–10)</param>
+        /// <param name="resultCode">输出：用户必须填写的答案字符串 / Output: the string the user must enter</param>
+        /// <param name="tip">输出：该样式的输入提示（默认"请输入图片中的字符"，算术型为"输入计算结果"）/ Output: the style's input tip (default "请输入图片中的字符", "输入计算结果" for arithmetic)</param>
+        /// <returns>PNG 图片字节数组；类型编号非法时返回 null / The PNG image bytes; null when the type id is invalid</returns>
+        public static byte[]? CreateVerificationCodeImage(int[]? codeTypes, out string? resultCode, out string? tip)
+        {
+            if (codeTypes == null || codeTypes.Length == 0)
             {
                 codeTypes = new int[AllCodeTypes.Length];
                 Array.Copy(AllCodeTypes, codeTypes, AllCodeTypes.Length);
             }
 
             resultCode = null;
-            byte[]? retByte = null;
+            tip = null;
             int count = codeTypes.Length;
             int index = new Random(Guid.NewGuid().GetHashCode()).Next(0, count);
-            int codeType = codeTypes[index];
+            VerificationCodeBase? code = CreateByCodeType(codeTypes[index]);
+            if (code == null)
+            {
+                return null;
+            }
+            byte[]? retByte = code.CreateImage(out resultCode);
+            tip = code.Tip;
+            return retByte;
+        }
+
+        /// <summary>
+        /// 按类型编号创建图形验证码实例（1–10；点选式不在此编号体系内，经各自的专用入口创建）
+        /// / Create a graphic verification code instance by type id (1–10; click styles sit outside this numbering and use their dedicated entry points)
+        /// </summary>
+        /// <param name="codeType">类型编号 / The type id</param>
+        /// <returns>验证码实例；编号非法时返回 null / The verification code instance; null when the id is invalid</returns>
+        private static VerificationCodeBase? CreateByCodeType(int codeType)
+        {
             switch (codeType)
             {
                 case 1:
-                    retByte = CreateVerificationCode<VerificationCode001>().CreateImage(out resultCode);
-                    break;
+                    return CreateVerificationCode<VerificationCode001>();
                 case 2:
-                    retByte = CreateVerificationCode<VerificationCode002>().CreateImage(out resultCode);
-                    break;
+                    return CreateVerificationCode<VerificationCode002>();
                 case 3:
-                    retByte = CreateVerificationCode<VerificationCode003>().CreateImage(out resultCode);
-                    break;
+                    return CreateVerificationCode<VerificationCode003>();
                 case 4:
-                    retByte = CreateVerificationCode<VerificationCode004>().CreateImage(out resultCode);
-                    break;
+                    return CreateVerificationCode<VerificationCode004>();
                 case 5:
-                    retByte = CreateVerificationCode<VerificationCode005>().CreateImage(out resultCode);
-                    break;
+                    return CreateVerificationCode<VerificationCode005>();
                 case 6:
-                    retByte = CreateVerificationCode<VerificationCode006>().CreateImage(out resultCode);
-                    break;
+                    return CreateVerificationCode<VerificationCode006>();
                 case 7:
-                    retByte = CreateVerificationCode<VerificationCode007>().CreateImage(out resultCode);
-                    break;
+                    return CreateVerificationCode<VerificationCode007>();
                 case 8:
-                    retByte = CreateVerificationCode<VerificationCode008>().CreateImage(out resultCode);
-                    break;
+                    return CreateVerificationCode<VerificationCode008>();
                 case 9:
-                    retByte = CreateVerificationCode<VerificationCode009>().CreateImage(out resultCode);
-                    break;
+                    return CreateVerificationCode<VerificationCode009>();
                 case 10:
-                    retByte = CreateVerificationCode<VerificationCode010>().CreateImage(out resultCode);
-                    break;
+                    return CreateVerificationCode<VerificationCode010>();
+                default:
+                    return null;
             }
-            return retByte;
         }
 
         /// <summary>
