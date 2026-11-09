@@ -2843,8 +2843,8 @@ namespace Rampage.Data.Client
         }
 
         /// <summary>
-        /// 通过 sqlite_master / PRAGMA table_info 获取 SQLite 表结构（SQLite 无表/列注释，Comment 恒为空；失败时记录日志并返回空列表）
-        /// Get SQLite table structures via sqlite_master / PRAGMA table_info (SQLite has no table/column comments, Comment is always empty; logs and returns an empty list on failure)
+        /// 通过 sqlite_master / pragma_table_info 表值函数获取 SQLite 表结构（SQLite 无表/列注释，Comment 恒为空；失败时记录日志并返回空列表）
+        /// Get SQLite table structures via sqlite_master / the pragma_table_info table-valued function (SQLite has no table/column comments, Comment is always empty; logs and returns an empty list on failure)
         /// </summary>
         private List<DbTableInfo> GetTableInfos_SQLite(IList<string>? tableNames = null)
         {
@@ -2867,7 +2867,17 @@ namespace Rampage.Data.Client
 
                     List<DbColumnInfo> columns = new List<DbColumnInfo>();
 
-                    string columnSql = $"PRAGMA table_info([{tableName!.Replace("]", "]]")}]);";
+                    // pragma_table_info() 表值函数 + COALESCE+CAST 归一:PRAGMA 输出的 dflt_value 列每行实际类型不同(NULL/整数/文本)且首行常为 NULL,
+                    // Microsoft.Data.Sqlite 在首行为 NULL 时把整列推断为 Byte[],仅 CAST 不改变 NULL,DataTable.Load 必炸;COALESCE 兜底为非空文本后整列恒为 String。
+                    // 消费端只读 name/type/notnull/pk,不消费 dflt_value,归一无语义损失。
+                    // 注意 NOTNULL 是 SQLite 关键字:裸写 "AS notnull" 别名会语法错误(SQLite Error 1: near "notnull"),去掉别名列名本就是 notnull
+                    // pragma_table_info() table-valued function with COALESCE+CAST normalization: dflt_value in the PRAGMA output varies in
+                    // per-row type (NULL/integer/text) and the first row is often NULL; Microsoft.Data.Sqlite types the whole column as Byte[]
+                    // when the first row is NULL - CAST alone keeps the NULL - so DataTable.Load always throws. COALESCE to a non-null string
+                    // makes the column uniformly String. Consumers only read name/type/notnull/pk - never dflt_value - so this is loss-free.
+                    // NOTE: NOTNULL is a SQLite keyword - a bare "AS notnull" alias is a syntax error (SQLite Error 1: near "notnull");
+                    // with no alias at all the column is already named notnull.
+                    string columnSql = $"SELECT cid, name, type, [notnull], COALESCE(CAST(dflt_value AS TEXT), '') AS dflt_value, pk FROM pragma_table_info('{tableName!.Replace("'", "''")}');";
                     DataSet columnDs = ExecuteDataSet(columnSql);
                     if (columnDs.Tables.Count > 0 && columnDs.Tables[0].Rows.Count > 0)
                     {

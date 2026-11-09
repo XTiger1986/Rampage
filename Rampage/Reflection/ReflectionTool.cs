@@ -40,23 +40,98 @@ namespace Rampage.Reflection
         }
 
         /// <summary>
-        /// 加载应用根目录下除 Microsoft.*、System.* 前缀外的全部 DLL 程序集（常用于依赖注入扫描）
-        /// Load all DLLs under the application base directory except Microsoft.* and System.* prefixed ones (typically for DI scanning)
+        /// 获取依赖注入扫描所需的程序集：应用目录扫描（松散部署）+ 入口程序集静态引用闭包 + 已加载程序集（单文件发布兜底）三来源按简单名去重合并。
+        /// Collect assemblies for DI scanning by merging three sources (deduplicated by simple name): app-directory scan (loose deployment), static reference closure from the entry assembly, and already-loaded assemblies (single-file fallback).
         /// </summary>
-        /// <returns>已加载的程序集列表 / The loaded assemblies</returns>
+        /// <returns>去重后的程序集列表（目录扫描结果在前，顺序不变） / The deduplicated assemblies (directory-scan results first, order preserved)</returns>
+        /// <remarks>
+        /// 单文件发布(PublishSingleFile)时托管 DLL 全部打包进 exe，应用目录里没有 DLL，目录扫描为空；
+        /// 此时由入口程序集的静态引用闭包(Assembly.Load 按名加载，单文件宿主自动从 bundle 解析)与已加载程序集兜底，保证 DI/实体映射/权限发现不失效。
+        /// 松散部署下目录扫描结果始终排在最前且顺序不变，手工放置 DLL 的既有行为完全不受影响。
+        /// Under single-file publish all managed DLLs are bundled inside the exe so the directory scan finds nothing;
+        /// the reference closure (loaded by name, resolved from the bundle by the single-file host) plus already-loaded assemblies cover that case.
+        /// In loose deployments the directory scan still comes first in unchanged order, so drop-in DLLs keep working exactly as before.
+        /// </remarks>
         public static List<Assembly> GetEssentialAssemblies()
         {
+            Dictionary<string, Assembly> assemblies = new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
+            List<Assembly> result = new List<Assembly>();
+
+            // 来源1：应用目录扫描 —— 松散部署下的原有行为，结果顺序保持不变
+            // Source 1: app-directory scan - original behaviour for loose deployments, order preserved
             DirectoryInfo rootDir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
-            FileInfo[] dllFiles = rootDir.GetFiles("*dll");
-            dllFiles = dllFiles.Where(f => !StringTool.StartsWithIgnoreCase(f.Name, "Microsoft.") && !StringTool.StartsWithIgnoreCase(f.Name, "System.")).ToArray();
-            List<Assembly> assemblies = new List<Assembly>();
-            foreach (FileInfo dllFile in dllFiles)
+            if (rootDir.Exists)
             {
-                Assembly assembly = Assembly.LoadFrom(dllFile.FullName);
-                assemblies.Add(assembly);
+                FileInfo[] dllFiles = rootDir.GetFiles("*dll");
+                dllFiles = dllFiles.Where(f => !StringTool.StartsWithIgnoreCase(f.Name, "Microsoft.") && !StringTool.StartsWithIgnoreCase(f.Name, "System.")).ToArray();
+                foreach (FileInfo dllFile in dllFiles)
+                {
+                    Assembly assembly = Assembly.LoadFrom(dllFile.FullName);
+                    if (assemblies.TryAdd(assembly.GetName().Name!, assembly))
+                    {
+                        result.Add(assembly);
+                    }
+                }
             }
 
-            return assemblies;
+            // 来源2：入口程序集静态引用闭包(BFS) —— 单文件发布时的主要来源；按名加载失败的可选/平台引用直接跳过
+            // Source 2: static reference closure (BFS) from the entry assembly - primary source under single-file publish; optional/platform-specific references that fail to load are skipped
+            HashSet<string> visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            Queue<AssemblyName> pending = new Queue<AssemblyName>();
+            Assembly entry = EntryAssembly ?? typeof(ReflectionTool).Assembly;
+            pending.Enqueue(entry.GetName());
+            while (pending.Count > 0)
+            {
+                AssemblyName assemblyName = pending.Dequeue();
+                if (!visited.Add(assemblyName.Name!))
+                {
+                    continue;
+                }
+                if (StringTool.StartsWithIgnoreCase(assemblyName.Name, "Microsoft.") || StringTool.StartsWithIgnoreCase(assemblyName.Name, "System."))
+                {
+                    continue;
+                }
+
+                Assembly assembly;
+                try
+                {
+                    assembly = Assembly.Load(assemblyName);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (assemblies.TryAdd(assembly.GetName().Name!, assembly))
+                {
+                    result.Add(assembly);
+                }
+
+                foreach (AssemblyName childName in assembly.GetReferencedAssemblies())
+                {
+                    if (!visited.Contains(childName.Name!))
+                    {
+                        pending.Enqueue(childName);
+                    }
+                }
+            }
+
+            // 来源3：已加载程序集 —— 兜住经 JIT 或其他机制动态加载而未进闭包的程序集
+            // Source 3: already-loaded assemblies - catches those loaded dynamically (JIT or otherwise) outside the closure
+            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                string? assemblySimpleName = assembly.GetName().Name;
+                if (assemblySimpleName == null || StringTool.StartsWithIgnoreCase(assemblySimpleName, "Microsoft.") || StringTool.StartsWithIgnoreCase(assemblySimpleName, "System."))
+                {
+                    continue;
+                }
+                if (assemblies.TryAdd(assemblySimpleName, assembly))
+                {
+                    result.Add(assembly);
+                }
+            }
+
+            return result;
         }
 
         #region TypeDescriptor
