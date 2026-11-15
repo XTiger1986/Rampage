@@ -21,6 +21,7 @@ using Rampage.Web.Authentication;
 using Rampage.Web.Extensions;
 using Rampage.Web.Utilities;
 using System;
+using System.Security.Cryptography;
 
 namespace Rampage.Management.BLL
 {
@@ -122,12 +123,13 @@ namespace Rampage.Management.BLL
         }
 
         /// <summary>从客户端读取认证令牌，依次尝试 Cookie、查询串、Authorization 请求头、表单 / Read the authentication token from the client, trying the cookie, query string, Authorization request header, then the form in order</summary>
-        /// <returns>解密并反序列化后的令牌；不存在或解密失败时为 null / The decrypted and deserialized token; null if missing or decryption fails</returns>
+        /// <returns>解密并反序列化后的令牌；不存在或无效时为 null，无效 Cookie 会被清除 / The decrypted and deserialized token; null if missing or invalid, with invalid cookies removed</returns>
         public AuthenticationToken? GetClientAgentToken()
         {
             string cookieKey = $"{WebGlobals.AuthorizationHeaderKey}.{ManagementVars.AuthenticationConfigName}";
             string safeCookieKey = SecurityTool.SHA1(cookieKey);
             string? encryptTokenStr = WebTool.GetCookie(safeCookieKey);
+            bool fromCookie = !string.IsNullOrEmpty(encryptTokenStr);
             if (string.IsNullOrEmpty(encryptTokenStr))
             {
                 if (HttpContext.Request.Query.ContainsKey(cookieKey))
@@ -147,10 +149,33 @@ namespace Rampage.Management.BLL
             {
                 return null;
             }
-            string tokenStr = SecurityTool.AESDecodeCBC(encryptTokenStr);
-            if (!string.IsNullOrEmpty(tokenStr))
+            try
             {
-                return JsonTool.Parse<AuthenticationToken>(tokenStr);
+                // 客户端输入须包含 16 字节 IV 和完整密文块，避免短密文触发工具层业务异常。
+                // Client input must contain a 16-byte IV and complete ciphertext blocks.
+                byte[] data = Convert.FromBase64String(encryptTokenStr);
+                if (data.Length >= 32 && data.Length % 16 == 0)
+                {
+                    string tokenStr = SecurityTool.AESDecodeCBC(encryptTokenStr);
+                    AuthenticationToken? token = JsonTool.Parse<AuthenticationToken>(tokenStr);
+                    if (token != null && !string.IsNullOrWhiteSpace(token.Token))
+                    {
+                        return token;
+                    }
+                }
+            }
+            catch (FormatException)
+            {
+                // 非 Base64 输入按无效令牌处理 / Treat non-Base64 input as an invalid token.
+            }
+            catch (CryptographicException)
+            {
+                // 旧密钥签发或损坏的密文按未登录处理 / Treat stale-key or damaged ciphertext as unauthenticated.
+            }
+
+            if (fromCookie)
+            {
+                ClearClientAgentToken();
             }
 
             return null;
