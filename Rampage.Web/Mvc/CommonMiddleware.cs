@@ -61,7 +61,12 @@ namespace Rampage.Web.Mvc
         } = "服务器处理请求时发生错误，请稍后重试。";
 
         /// <summary>
-        /// 判断本次异常是否向客户端暴露原始消息：SuperException 始终暴露，其余取决于 <see cref="ExposeExceptionDetails"/> 或是否 Development 环境 / Decides whether the raw message is exposed for this exception: SuperException always is; others depend on <see cref="ExposeExceptionDetails"/> or the Development environment
+        /// 判断本次异常是否向客户端暴露原始消息：SuperException 始终暴露，其余依次取决于
+        /// <see cref="ExposeExceptionDetails"/>、全局配置键 ExposeExceptionDetails（"true"/"false"，生产环境临时排障用）
+        /// 或是否 Development 环境。
+        /// / Decides whether the raw message is exposed: SuperException always is; others fall through
+        /// <see cref="ExposeExceptionDetails"/>, the global config key ExposeExceptionDetails
+        /// ("true"/"false", for temporary production diagnostics), then the Development environment.
         /// </summary>
         /// <param name="exception">捕获的异常 / The caught exception</param>
         /// <returns>true 表示返回原始异常消息 / True to return the raw exception message</returns>
@@ -71,7 +76,16 @@ namespace Rampage.Web.Mvc
             {
                 return true;
             }
-            return ExposeExceptionDetails ?? WebHostEnvironment.IsDevelopment();
+            if (ExposeExceptionDetails.HasValue)
+            {
+                return ExposeExceptionDetails.Value;
+            }
+            string? configFlag = Rampage.GlobalConfiguration.Configuration?["ExposeExceptionDetails"];
+            if (bool.TryParse(configFlag, out bool exposed))
+            {
+                return exposed;
+            }
+            return WebHostEnvironment.IsDevelopment();
         }
 
         /// <summary>
