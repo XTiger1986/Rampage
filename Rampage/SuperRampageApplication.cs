@@ -226,11 +226,13 @@ namespace Rampage
             string? log4netConfigPath = null;
             if (!string.IsNullOrEmpty(EnvironmentName))
             {
-                log4netConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"config\\log4net.{EnvironmentName}.config");
+                // 正斜杠在 Windows/Linux 均可解析；反斜杠字面量在 Linux 上 File.Exists 恒为 false。
+                // / Forward slashes resolve on both Windows and Linux; a literal backslash makes File.Exists always false on Linux.
+                log4netConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config", $"log4net.{EnvironmentName}.config");
             }
             if (string.IsNullOrEmpty(log4netConfigPath) || false == File.Exists(log4netConfigPath))
             {
-                log4netConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"config\\log4net.config");
+                log4netConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config", "log4net.config");
             }
             LoggerFactory.Configure(log4netConfigPath);
         }

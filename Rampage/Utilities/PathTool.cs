@@ -453,15 +453,21 @@ namespace Rampage.Utilities
                 return string.Empty;
             }
 
+            // 统一两种分隔符为当前平台分隔符：Windows 下与原实现（"/"→"\"）行为完全一致；
+            // Linux 下原实现会把所有 "/" 变成 "\"，拼出的路径 File.Exists 恒为 false，
+            // 曾导致按程序集注册配置时整个程序集的服务注册被静默丢弃。
+            // / Normalize both separators to the platform separator: on Windows this is identical to the old
+            // behaviour ("/"→"\"); on Linux the old code turned every "/" into "\", making File.Exists always
+            // false and silently dropping a whole assembly's service registration during per-assembly config registration.
+            char separator = Path.DirectorySeparatorChar;
             string[] handledParts = new string[parts.Length];
-            for(int i = 0; i < parts.Length; i++)
+            for (int i = 0; i < parts.Length; i++)
             {
-                string part = parts[i];
-                part = part.Replace("/", "\\");
+                string part = parts[i].Replace('/', separator).Replace('\\', separator);
 
                 if (i > 0)
                 {
-                    part = part.TrimStart('\\');
+                    part = part.TrimStart(separator);
                 }
                 handledParts[i] = part;
             }

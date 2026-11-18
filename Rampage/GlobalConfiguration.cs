@@ -41,10 +41,14 @@ namespace Rampage
                         configurationManager.AddJsonFile("config/app.json", true, true);
                         if (!string.IsNullOrEmpty(EnvironmentName))
                         {
-                            string envConfigFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"config\\app.{EnvironmentName}.json");
+                            // 用正斜杠与 Path.Join 拼接：Windows/Linux 均可正确解析，
+                            // 反斜杠字面量在 Linux 上 File.Exists 永远为 false，环境覆盖配置会被静默丢弃。
+                            // / Use forward slashes / Path.Join so both Windows and Linux resolve the path; a literal
+                            // backslash makes File.Exists always false on Linux and the env override silently dropped.
+                            string envConfigFilePath = Path.Join(AppDomain.CurrentDomain.BaseDirectory, "config", $"app.{EnvironmentName}.json");
                             if (File.Exists(envConfigFilePath))
                             {
-                                configurationManager.AddJsonFile($"config\\app.{EnvironmentName}.json", true, true);
+                                configurationManager.AddJsonFile($"config/app.{EnvironmentName}.json", true, true);
                             }
                         }
 
