@@ -93,7 +93,12 @@ namespace Rampage.Localization
         /// </summary>
         public static void ReloadConfig()
         {
-            LocalizationConfig? config = GlobalConfiguration.Configuration.GetValue<LocalizationConfig>("LocalizationConfig");
+            // 全局配置可能晚于本类的静态构造（后台线程早期触达）就绪：null 时直接回退默认值，
+            // 不能把 ArgumentNullException 抛进静态构造导致 TypeInitializationException 连环崩溃。
+            // / The global configuration may not be ready yet when the static ctor of this class is touched early
+            // by a background thread: fall back to defaults on null instead of throwing ArgumentNullException
+            // inside the static constructor, which would cascade into a TypeInitializationException crash.
+            LocalizationConfig? config = GlobalConfiguration.Configuration?.GetValue<LocalizationConfig>("LocalizationConfig");
             if (config == null)
             {
                 config = new LocalizationConfig();

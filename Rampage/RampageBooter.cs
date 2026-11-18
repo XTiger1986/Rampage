@@ -219,7 +219,19 @@ namespace Rampage
             ThreadingWorker.Register(assemblyWorkerName, (data) =>
             {
                 Assembly assembly = (Assembly)data!;
-                SuperConfigManager.RegisterConfigs(assembly, environmentName);
+                try
+                {
+                    SuperConfigManager.RegisterConfigs(assembly, environmentName);
+                }
+                catch (Exception cfgEx)
+                {
+                    // 按程序集的配置注册失败只影响该程序集的静态配置绑定，不应中断其服务注册
+                    // （历史上这里抛出的异常会把整个程序集的 [Auto] 服务静默丢掉）。写 stderr 便于在日志里排查。
+                    // / A per-assembly config-registration failure only affects that assembly's static config binding
+                    // and must not abort its service registration (it used to silently drop the whole assembly's
+                    // [Auto] services). Written to stderr so it shows up in logs.
+                    Console.Error.WriteLine("[RampageBooter] config registration failed for " + assembly.GetName().Name + ": " + cfgEx.Message);
+                }
                 LoadBaseServiceTypes(assembly);
             });
             // STA 主线程下退化为单线程执行，避免 COM 单元跨线程问题 / degrade to a single worker under STA to avoid cross-apartment COM issues
