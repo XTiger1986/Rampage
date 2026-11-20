@@ -75,7 +75,11 @@ namespace Rampage.Localization
                     resource.ModuleName = moduleName;
                     resource.CultureName = langName;
                     ConfigurationManager resManager = new ConfigurationManager();
-                    resManager.AddJsonFile($"{Config.RootDirectory}\\{moduleName}\\{langName}.json", true, true);
+                    // 用 Path.Combine 按平台拼路径：反斜杠字面量在 Linux 上永远解析不到文件，
+                    // 而 optional:true 会静默加载成空配置——所有本地化键都返回空字符串（全站文案消失）。
+                    // / Build the path per platform: a literal backslash never resolves on Linux and
+                    // optional:true then silently loads an empty config, blanking every localized string.
+                    resManager.AddJsonFile(Path.Combine(Config.RootDirectory, moduleName, $"{langName}.json"), true, true);
                     resource.Resource = resManager;
 
                     localizationModule.Resources.Add(langName, resource);
