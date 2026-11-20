@@ -907,9 +907,11 @@ namespace Rampage.Management.BLL
             {
                 return R.Failure();
             }
-            string encryptNewPassword = EncryptAdminPassword(newPassword);
-            admin.Password = encryptNewPassword;
-            admin.UpdateTime = UtcNow;
+            // 此处必须传明文：UpdateAdmin 对非空 Password 统一再做一次 PBKDF2，
+            // 若在此处预哈希会变成双重哈希，改密后新旧密码都无法登录（线上曾因此锁死）。
+            // / The plaintext must be passed here: UpdateAdmin applies PBKDF2 once to any non-empty
+            // Password, so pre-hashing here would double-encrypt and lock every password out.
+            admin.Password = newPassword;
             R result = UpdateAdmin(admin);
             if (result.IsSuccess)
             {
